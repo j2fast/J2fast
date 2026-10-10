@@ -42,7 +42,7 @@ export class AreaBuilder {
   building(obj: THREE.Object3D, x: number, z: number, yaw: number, w: number, d: number, pad = 0.6): void {
     this.place(obj, x, z, yaw);
     const rotated = Math.abs(Math.sin(yaw)) > 0.5;
-    this.box(x, z, (rotated ? d : w) + pad, (rotated ? w : d) + pad, 6);
+    this.box(x, z, (rotated ? d : w) + pad, (rotated ? w : d) + pad, 6).tag = 'building';
   }
 
   /** A palisade wall from a to b with circle colliders along it. */
@@ -57,20 +57,20 @@ export class AreaBuilder {
     const n = Math.ceil(len / 0.9);
     for (let i = 0; i <= n; i++) {
       const t = i / n;
-      this.circle(ax + (bx - ax) * t, az + (bz - az) * t, 0.55, height);
+      this.circle(ax + (bx - ax) * t, az + (bz - az) * t, 0.55, height).tag = 'wall';
     }
   }
 
   tree(kind: 'pine' | 'sakura' | 'maple' | 'dead' | 'willow', x: number, z: number, scale = 1, collide = true): void {
     const t = tree(kind, this.rng, scale);
     this.place(t, x, z, this.rng.next() * 6);
-    if (collide) this.circle(x, z, 0.45 * scale, 5);
+    if (collide) this.circle(x, z, 0.45 * scale, 5).tag = kind === 'dead' ? 'deadtree' : kind === 'sakura' ? 'sakura' : kind === 'pine' ? 'pine' : 'tree';
   }
 
   rock(x: number, z: number, size: number, color?: number, collide = true): THREE.Mesh {
     const r = rock(this.rng, size, color);
     this.place(r, x, z, 0, size * 0.25);
-    if (collide && size > 0.6) this.circle(x, z, size * 0.85, size * 1.5);
+    if (collide && size > 0.6) this.circle(x, z, size * 0.85, size * 1.5).tag = 'rock';
     return r;
   }
 

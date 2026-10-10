@@ -7,6 +7,14 @@ import { UI } from './ui/ui';
 import type { VirtualInput } from './core/input';
 import { BotOptions, TestBot } from './game/testbot';
 import { addItem } from './systems/inventory';
+import { WEAPON_FAMILIES } from './data/weapons';
+import { ITEMS } from './data/items';
+import { ENEMIES } from './data/enemies';
+import { QUESTS } from './data/quests';
+import { DIALOGUES, NPC_DIALOGUE, NPC_NAMES, BOSS_LINES, ENDING_LINES } from './data/dialogue';
+import { SKILLS } from './data/skills';
+import { SHOP_STOCK } from './data/shop';
+import { AREA_BUILDERS } from './world/areas';
 
 function showBootError(message: string) {
   const el = document.getElementById('boot-error');
@@ -84,6 +92,67 @@ function boot() {
       spawn(id: string, x: number, z: number, level = 1) {
         const e = game.spawnEnemy(id, x, z, level);
         return e?.spawnId ?? null;
+      },
+      /** Raw game data and area layouts, used by scripts/export-unreal.mjs. */
+      exportData() {
+        return { WEAPON_FAMILIES, ITEMS, ENEMIES, QUESTS, DIALOGUES, NPC_DIALOGUE, NPC_NAMES, BOSS_LINES, ENDING_LINES, SKILLS, SHOP_STOCK };
+      },
+      exportArea(id: string, step = 2) {
+        const a = AREA_BUILDERS[id as keyof typeof AREA_BUILDERS]();
+        const half = a.size / 2;
+        const n = Math.floor(a.size / step) + 1;
+        const heights: number[] = [];
+        const walk: number[] = [];
+        for (let j = 0; j < n; j++) {
+          for (let i = 0; i < n; i++) {
+            const x = -half + i * step;
+            const z = -half + j * step;
+            heights.push(Math.round(a.heightAt(x, z) * 100) / 100);
+            walk.push(a.walkable ? (a.walkable(x, z) ? 1 : 0) : 1);
+          }
+        }
+        // Ground colours: sample the vertex colours of the generated ground mesh.
+        const ground = a.group.getObjectByName('ground') as any;
+        const colors: number[] = [];
+        if (ground) {
+          const pos = ground.geometry.attributes.position;
+          const col = ground.geometry.attributes.color;
+          const segs = Math.round(Math.sqrt(pos.count)) - 1;
+          const cell = a.size / segs;
+          for (let j = 0; j < n; j++) {
+            for (let i = 0; i < n; i++) {
+              const x = -half + i * step;
+              const z = -half + j * step;
+              const gi = Math.min(segs, Math.max(0, Math.round((x + half) / cell)));
+              const gj = Math.min(segs, Math.max(0, Math.round((z + half) / cell)));
+              const k = gj * (segs + 1) + gi;
+              const r = Math.round(col.getX(k) * 255);
+              const g = Math.round(col.getY(k) * 255);
+              const b = Math.round(col.getZ(k) * 255);
+              colors.push((r << 16) | (g << 8) | b);
+            }
+          }
+        }
+        return {
+          id: a.id,
+          name: a.name,
+          size: a.size,
+          indoor: !!a.indoor,
+          grid: { step, n, origin: -half, heights, walkable: walk, colors },
+          colliders: a.colliders.map((c) => ({ ...c })),
+          spawns: a.spawns,
+          markers: a.markers,
+          exits: a.exits,
+          interactables: a.interactables,
+          npcs: a.npcs,
+          enemies: a.enemies,
+          boss: a.boss ?? null,
+          env: a.env,
+          music: a.music,
+          tier: a.tier,
+          water: a.water ?? null,
+          ambient: a.ambient,
+        };
       },
       resetBot() {
         (hooks as unknown as { _bot?: TestBot })._bot = undefined;

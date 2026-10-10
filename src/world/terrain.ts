@@ -123,8 +123,8 @@ export function buildGround(spec: TerrainSpec, heightAt: (x: number, z: number) 
 // ------------------------------------------------------------------ Collision
 
 export type Collider =
-  | { kind: 'circle'; x: number; z: number; r: number; h?: number; id?: string; disabled?: boolean }
-  | { kind: 'box'; minX: number; maxX: number; minZ: number; maxZ: number; h?: number; id?: string; disabled?: boolean };
+  | { kind: 'circle'; x: number; z: number; r: number; h?: number; id?: string; disabled?: boolean; tag?: string }
+  | { kind: 'box'; minX: number; maxX: number; minZ: number; maxZ: number; h?: number; id?: string; disabled?: boolean; tag?: string };
 
 export function boxCollider(cx: number, cz: number, w: number, d: number, h = 3, id?: string): Collider {
   return { kind: 'box', minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2, h, id };
