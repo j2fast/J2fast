@@ -11,6 +11,7 @@ import { AREA_BUILDERS } from './areas';
 import type { AreaBuild, InteractDef } from './areaTypes';
 import { brazier, chest, wayshrine } from './props';
 import { resolveCircle, segmentBlocked } from './terrain';
+import { batchStatic } from './batch';
 import { toon } from '../render/toon';
 
 const SKY_VERT = `varying vec3 vPos; void main(){ vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`;
@@ -33,6 +34,7 @@ export class World {
   interactObjs = new Map<string, InteractObj>();
   quality: Quality = 'medium';
   private lanternLit = false;
+  batchStats = { before: 0, after: 0 };
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -80,6 +82,7 @@ export class World {
     const builder = AREA_BUILDERS[id];
     const area = builder();
     this.area = area;
+    this.batchStats = batchStatic(area.group);
     this.scene.add(area.group);
     const env = area.env;
     this.skyUniforms.top.value.setHex(env.skyTop);

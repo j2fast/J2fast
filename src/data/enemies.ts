@@ -116,7 +116,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 3.8,
     radius: 0.5,
     scale: 0.85,
-    poise: 14,
+    poise: 26,
     aggroRange: 13,
     leash: 28,
     xp: 12,

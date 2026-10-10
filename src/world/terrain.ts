@@ -185,6 +185,8 @@ export function segmentBlocked(colliders: Collider[], ax: number, az: number, bx
   const steps = 16;
   for (const c of colliders) {
     if (c.disabled || (c.h ?? 3) < minHeight) continue;
+    // Thin props (posts, trunks) should not yank the camera around.
+    if (c.kind === 'circle' && c.r < 0.8) continue;
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       if (t >= best) break;

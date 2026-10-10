@@ -125,7 +125,7 @@ export const QUESTS: Record<string, QuestDef> = Object.fromEntries(
         summary: 'Kanetsugu cannot work without Spirit Ore. The Hollowed seem to carry it.',
         prereqs: ['mq_oath'],
         objectives: [
-          { type: 'collect', target: 'spirit_ore', count: 5, text: 'Gather Spirit Ore', consume: true, hint: 'Defeated Hollowed often drop ore.' },
+          { type: 'collect', target: 'spirit_ore', count: 5, text: 'Gather Spirit Ore', hint: 'Defeated Hollowed often drop ore. Kanetsugu takes them when you return.' },
           { type: 'talk', target: 'kanetsugu', text: 'Bring the ore to Kanetsugu', area: 'village', waypoint: 'kanetsugu' },
         ],
         rewards: { xp: 80, coins: 60, items: [{ id: 'naginata_shrine', rarity: 1 }] },

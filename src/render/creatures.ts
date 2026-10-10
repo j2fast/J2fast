@@ -483,7 +483,7 @@ export function buildYomikage(): Model {
     ctx.stroke();
   });
   const maskMat = new THREE.MeshToonMaterial({ map: maskTex, emissive: 0x000000 });
-  const mask = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 16, -Math.PI / 2, Math.PI, 0, Math.PI), maskMat);
+  const mask = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 16, 0, Math.PI, 0, Math.PI), maskMat);
   mask.scale.set(1, 1.25, 0.55);
   mask.position.set(0, 1.25, 0.1);
   float.add(mask);

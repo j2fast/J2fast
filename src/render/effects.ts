@@ -318,6 +318,40 @@ export class TelegraphManager {
   get count() {
     return this.list.length;
   }
+
+  /**
+   * Is the ground point inside any active warning? Returns the warning's
+   * centre so a caller can move away from it. Used by the automated test bot,
+   * which "reads" telegraphs the way a player does.
+   */
+  dangerAt(x: number, z: number, margin = 0.6): { x: number; z: number; progress: number } | null {
+    for (const tg of this.list) {
+      if (tg.done) continue;
+      const gx = tg.group.position.x;
+      const gz = tg.group.position.z;
+      const dx = x - gx;
+      const dz = z - gz;
+      const d = Math.hypot(dx, dz);
+      const yaw = tg.group.rotation.y;
+      const sh = tg.shape;
+      let inside = false;
+      if (sh.kind === 'circle') inside = d < sh.radius + margin;
+      else if (sh.kind === 'ring') inside = d < sh.radius + 3;
+      else if (sh.kind === 'cone') {
+        const ang = Math.atan2(dx, dz) - yaw;
+        const a = Math.atan2(Math.sin(ang), Math.cos(ang));
+        inside = d < sh.radius + margin && (Math.abs(a) < ((sh.arc * Math.PI) / 180) / 2 + 0.25 || d < 1.2);
+      } else if (sh.kind === 'line') {
+        const fx = Math.sin(yaw);
+        const fz = Math.cos(yaw);
+        const along = dx * fx + dz * fz;
+        const perp = Math.abs(dx * fz - dz * fx);
+        inside = along > -margin && along < sh.length + margin && perp < sh.width / 2 + margin;
+      }
+      if (inside) return { x: gx, z: gz, progress: tg.t / Math.max(0.01, tg.duration) };
+    }
+    return null;
+  }
 }
 
 // ------------------------------------------------------------------ Shockwaves

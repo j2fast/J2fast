@@ -296,11 +296,11 @@ export class UI {
       const behind = this.v.z > 1;
       if (behind) {
         x = w - x;
-        y = h - 40;
+        y = h - 160;
       }
-      const m = 50;
-      x = Math.min(w - m, Math.max(m, x));
-      y = Math.min(h - m, Math.max(m + 120, y));
+      // Keep the marker clear of the HUD corners.
+      x = Math.min(w - 60, Math.max(60, x));
+      y = Math.min(h - 150, Math.max(170, y));
       wpel.style.left = `${x}px`;
       wpel.style.top = `${y}px`;
       const dist = Math.round(Math.hypot(wp.x - g.player.pos.x, wp.z - g.player.pos.z));

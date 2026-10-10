@@ -70,6 +70,9 @@ export class Enemy {
   private wanderTarget = new THREE.Vector3();
   private evadeT = 0;
   invulnerable = false;
+  private poiseRegenT = 0;
+  private staggerImmuneT = 0;
+  private flinchCd = 0;
   /** Bosses wait in their arena until the fight is triggered. */
   dormant = false;
   /** Damage dealt to the boss since the last check (for bars). */
@@ -125,6 +128,10 @@ export class Enemy {
     for (const [k, v] of this.cooldowns) this.cooldowns.set(k, v - dt);
     this.globalCd -= dt;
     this.evadeT -= dt;
+    this.flinchCd -= dt;
+    this.staggerImmuneT -= dt;
+    this.poiseRegenT -= dt;
+    if (this.poiseRegenT <= 0 && this.poise < this.def.poise) this.poise = this.def.poise;
     this.updateDots(dt, ctx);
 
     if (this.state === 'dead') {
@@ -214,8 +221,10 @@ export class Enemy {
         if (this.stateT >= 0.28) this.setState(this.aggro ? 'chase' : 'idle');
         break;
       case 'stagger':
-        if (this.stunT <= 0 && this.stateT >= (this.boss ? 2.4 : 1.3)) {
+        if (this.stunT <= 0 && this.stateT >= (this.boss ? 2.4 : 1.2)) {
           this.poise = this.def.poise;
+          this.staggerImmuneT = this.boss ? 6 : 3;
+          this.globalCd = Math.min(this.globalCd, 0.2);
           this.setState('chase');
         }
         break;
@@ -789,7 +798,10 @@ export class Enemy {
       this.setState('stagger');
       return;
     }
-    this.poise -= hit.poise;
+    // Poise: enough poise damage in a short window causes a stagger. Enemies
+    // keep winding up through light hits, so they cannot be stun-locked.
+    this.poiseRegenT = 2.5;
+    if (this.staggerImmuneT <= 0) this.poise -= hit.poise;
     if (this.poise <= 0) {
       this.poise = this.def.poise;
       this.cancelAttack(ctx);
@@ -798,11 +810,9 @@ export class Enemy {
       ctx.effects.burst(this.pos.x, this.pos.y + this.model.height * 0.8, this.pos.z, { count: 14, color: 0xffe08a, speed: 3, life: 0.6, size: 'm' });
       return;
     }
-    const smallEnemy = this.def.poise < 20 && !this.boss && !this.def.superArmor;
-    if (smallEnemy && this.state !== 'active') {
-      this.cancelAttack(ctx);
-      this.setState('hit');
-    } else if (!this.boss && !this.def.superArmor && (this.state === 'chase' || this.state === 'strafe' || this.state === 'recover')) {
+    // Brief flinch when caught off guard (not while winding up or striking).
+    if (!this.boss && !this.def.superArmor && this.flinchCd <= 0 && (this.state === 'chase' || this.state === 'strafe' || this.state === 'recover' || this.state === 'idle')) {
+      this.flinchCd = 1.4;
       this.setState('hit');
     }
   }

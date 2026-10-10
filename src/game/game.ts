@@ -105,6 +105,7 @@ export class Game implements GameCtx {
   private endingT = 0;
   private running = false;
   lastAutosave = 0;
+  private spawnCounter = 0;
 
   constructor(private container: HTMLElement) {
     this.settings = loadSettings(this.store);
@@ -200,7 +201,8 @@ export class Game implements GameCtx {
 
   spawnEnemy(id: string, x: number, z: number, level: number, summoned = false): Enemy | null {
     if (!ENEMIES[id]) return null;
-    const e = new Enemy(id, level, summoned ? `summon_${this.time}` : id, ENEMIES[id].id === 'training_dummy' ? 1 : this.enemyDifficulty().health);
+    this.spawnCounter++;
+    const e = new Enemy(id, level, `${summoned ? 'summon' : id}_${this.spawnCounter}`, ENEMIES[id].id === 'training_dummy' ? 1 : this.enemyDifficulty().health);
     const pos = this.world.move(x, z, 0, 0, e.radius);
     e.place(pos.x, this.world.groundY(pos.x, pos.z), pos.z, yawTo(pos.x, pos.z, this.player.pos.x, this.player.pos.z));
     e.summoned = summoned;
@@ -715,6 +717,7 @@ export class Game implements GameCtx {
     this.player.secondWindUsed = false;
     this.enterArea('village', 'start');
     this.mode = 'playing';
+    this.input.clearAll();
     this.ui.hideAllScreens();
     this.ui.showHud(true);
     this.ui.banner('Akari Village', 'The Spirit Lantern on Hinoyama has gone dark.');
@@ -741,6 +744,7 @@ export class Game implements GameCtx {
     const pos = this.data.player.pos;
     this.enterArea(this.data.player.area as AreaId, this.data.player.spawn, pos ?? undefined);
     this.mode = 'playing';
+    this.input.clearAll();
     this.ui.hideAllScreens();
     this.ui.showHud(true);
     for (const w of r.warnings) this.ui.toast(w, 'error');
@@ -894,7 +898,7 @@ export class Game implements GameCtx {
     mesh.position.y += 2.5;
     mesh.rotation.y = gate.yaw;
     this.scene.add(mesh);
-    const collider = { kind: 'box' as const, minX: gate.x - gate.width / 2, maxX: gate.x + gate.width / 2, minZ: gate.z - 0.6, maxZ: gate.z + 0.6, h: 5, id: 'bossBarrier' };
+    const collider = { kind: 'box' as const, minX: gate.x - gate.width / 2, maxX: gate.x + gate.width / 2, minZ: gate.z - 0.6, maxZ: gate.z + 0.6, h: 1.5, id: 'bossBarrier' };
     area.colliders.push(collider);
     this.barrier = { mesh, collider };
     const lines = BOSS_LINES[b.def.id]?.intro ?? [];
@@ -963,6 +967,7 @@ export class Game implements GameCtx {
     this.data.player.pos = null;
     this.enterArea(this.data.player.area as AreaId, this.data.player.spawn);
     this.mode = 'playing';
+    this.input.clearAll();
     this.ui.showHud(true);
     this.ui.toast('You rise again at the last waypoint.', 'info');
   }
@@ -1184,9 +1189,9 @@ export class Game implements GameCtx {
     if (!dlg) return;
     this.dialogue = null;
     dlg.npc.talking = false;
-    this.ui.hideDialogue();
     this.mode = 'playing';
     this.player.state = 'normal';
+    this.ui.hideDialogue();
     this.input.clearAll();
     if (!dlg.entry.noTalk) this.handleQuestUpdates(this.quests.notify({ type: 'talk', target: dlg.npc.id, quest: dlg.entry.quest }));
     // Hotaru crosses over once she has given you her bell.
@@ -1260,6 +1265,7 @@ export class Game implements GameCtx {
     this.mode = 'playing';
     this.player.state = 'normal';
     this.enterArea('village', 'from_summit');
+    this.input.clearAll();
     this.ui.showHud(true);
     this.autosave();
   }

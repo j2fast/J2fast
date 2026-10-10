@@ -239,7 +239,16 @@ export class Player {
     if (input.pressed.dodge) this.buffered = { action: 'dodge', t: 0.25 };
     if (input.pressed.ability) this.buffered = { action: 'ability', t: 0.25 };
 
-    if (input.pressed.swapWeapon && this.state === 'normal') this.trySwap(ctx);
+    if (input.pressed.swapWeapon) {
+      // Swapping is allowed while idle/moving or to cancel an attack's recovery.
+      const a = this.attack;
+      if (this.state === 'attack' && a && this.stateT >= a.windup + a.active) {
+        this.state = 'normal';
+        this.attack = null;
+        this.trail.active = false;
+      }
+      if (this.state === 'normal') this.trySwap(ctx);
+    }
     if (input.pressed.heal && this.state === 'normal') this.tryHeal(ctx);
 
     let speed = 0;

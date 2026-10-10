@@ -94,6 +94,16 @@ export class Hazards {
     this.list = this.list.filter((h) => !done.includes(h));
   }
 
+  /** An expanding ring about to reach (x,z)? (test bot helper) */
+  ringThreat(x: number, z: number): { x: number; z: number } | null {
+    for (const h of this.list) {
+      if (h.kind !== 'ring' || h.hit) continue;
+      const d = Math.hypot(x - h.center.x, z - h.center.z);
+      if (d > h.radius && d - h.radius < 2.2) return { x: h.center.x, z: h.center.z };
+    }
+    return null;
+  }
+
   clear() {
     for (const h of this.list) this.group.remove(h.mesh);
     this.list = [];

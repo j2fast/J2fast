@@ -138,7 +138,7 @@ export function buildHumanoid(o: HumanoidOpts): Rig {
       break;
     }
     case 'mask': {
-      const mask = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10, -Math.PI / 2, Math.PI, 0, Math.PI), toon(o.maskColor ?? 0xf2ede2));
+      const mask = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10, 0, Math.PI, 0, Math.PI), toon(o.maskColor ?? 0xf2ede2));
       mask.position.set(0, 0.17, 0.02);
       mask.scale.set(1, 1.15, 1);
       head.add(mask);

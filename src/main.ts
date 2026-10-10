@@ -5,6 +5,8 @@ import './ui/styles.css';
 import { Game, STEP } from './game/game';
 import { UI } from './ui/ui';
 import type { VirtualInput } from './core/input';
+import { BotOptions, TestBot } from './game/testbot';
+import { addItem } from './systems/inventory';
 
 function showBootError(message: string) {
   const el = document.getElementById('boot-error');
@@ -55,6 +57,36 @@ function boot() {
       setInput: (v: VirtualInput | null) => game.input.setVirtual(v),
       teleport: (x: number, z: number) => game.teleport(x, z),
       god: (on: boolean) => (game.godMode = on),
+      /**
+       * Let the scripted test bot play for up to n steps, stopping early when
+       * `until` (a predicate over debug state) is satisfied.
+       */
+      bot(n: number, opts: BotOptions = {}, until?: string) {
+        const bot = ((hooks as unknown as { _bot?: TestBot })._bot ??= new TestBot(opts));
+        const pred = until ? (new Function('s', `return (${until});`) as (s: ReturnType<Game['debugState']>) => boolean) : null;
+        let i = 0;
+        for (; i < n; i++) {
+          game.input.setVirtual(bot.tick(game, STEP));
+          game.step(STEP);
+          if (pred && i % 10 === 0 && pred(game.debugState())) break;
+          if (game.mode !== 'playing' && game.mode !== 'dialogue') break;
+        }
+        game.input.setVirtual(null);
+        game.render(STEP);
+        return { steps: i, dodges: bot.dodges, heals: bot.heals, attacks: bot.attacks, state: game.debugState() };
+      },
+      give(id: string, qty = 1, rarity = 0) {
+        const r = addItem(game.data, id, qty, { rarity, affixes: [] });
+        game.refreshStats();
+        return r.instance?.uid ?? null;
+      },
+      spawn(id: string, x: number, z: number, level = 1) {
+        const e = game.spawnEnemy(id, x, z, level);
+        return e?.spawnId ?? null;
+      },
+      resetBot() {
+        (hooks as unknown as { _bot?: TestBot })._bot = undefined;
+      },
     };
     (window as unknown as { __lanternbound: typeof hooks }).__lanternbound = hooks;
   }

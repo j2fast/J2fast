@@ -131,6 +131,18 @@ export class Projectiles {
     this.list = [];
   }
 
+  /** Nearest enemy projectile heading toward (x,z) within range (test bot helper). */
+  incoming(x: number, z: number, range: number): { x: number; z: number } | null {
+    for (const p of this.list) {
+      if (p.team !== 'enemy') continue;
+      const dx = x - p.pos.x;
+      const dz = z - p.pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d < range && dx * p.vel.x + dz * p.vel.z > 0) return { x: p.pos.x, z: p.pos.z };
+    }
+    return null;
+  }
+
   get count() {
     return this.list.length;
   }

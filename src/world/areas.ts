@@ -79,7 +79,7 @@ export function buildVillage(): AreaBuild {
 
   // Plaza
   b.place(P.well(), 0, 0);
-  b.circle(0, 0, 1.4);
+  b.circle(0, 0, 1.4, 1.2);
   const plaza = new THREE.Mesh(new THREE.CircleGeometry(9, 32), toon(0xb8ab92));
   plaza.rotation.x = -Math.PI / 2;
   plaza.position.y = 0.03;
@@ -316,6 +316,7 @@ export function buildBamboo(): AreaBuild {
     fire.add(log);
   }
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.3, 8), basic(0xff8a2a, { transparent: true, opacity: 0.85, additive: true }));
+  flame.name = 'campfire';
   flame.position.y = 0.7;
   fire.add(flame);
   b.place(fire, 14, 1);
@@ -471,6 +472,7 @@ export function buildMarsh(): AreaBuild {
 
   // Water plane
   const water = new THREE.Mesh(new THREE.PlaneGeometry(170, 170, 1, 1), toon(0x3a6a7a, { transparent: true, opacity: 0.72 }));
+  water.name = 'water';
   water.rotation.x = -Math.PI / 2;
   water.position.y = waterLevel;
   water.receiveShadow = true;
@@ -486,7 +488,7 @@ export function buildMarsh(): AreaBuild {
   b.scatter(420, -75, 75, -75, 75, (x, z) => pathDistance(causeways, x, z).d < 3 || islands.some((i) => inCircle(x, z, i.x, i.z, i.r - 1)), (x, z) => reeds.push({ x, y: heightAt(x, z), z, s: 1 + b.rng.next() }));
   b.group.add(P.tufts(reeds, 0x7a8a4a, 1.2));
   // Willows and dead trees on the edges
-  b.scatter(40, -78, 78, -78, 78, (x, z) => Math.hypot(x, z) < 62, (x, z) => b.tree(b.rng.chance(0.6) ? 'willow' : 'dead', x, z, 1 + b.rng.next() * 0.5));
+  b.scatter(40, -78, 78, -78, 78, (x, z) => Math.hypot(x, z) < 62 || Math.hypot(x + 64, z) < 16, (x, z) => b.tree(b.rng.chance(0.6) ? 'willow' : 'dead', x, z, 1 + b.rng.next() * 0.5));
   for (const i of islands.slice(1)) {
     b.tree(b.rng.chance(0.5) ? 'willow' : 'dead', i.x + i.r * 0.6, i.z - i.r * 0.6, 1.1);
   }
