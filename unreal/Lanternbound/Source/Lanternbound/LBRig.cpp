@@ -680,7 +680,7 @@ void FLBRig::Animate(const FString& Mode, const FString& AttackPose, float Time,
 		const float Moving = Mode == TEXT("move") ? 1.f : 0.15f;
 		for (int32 I = 0; I < Extra.Num(); I++)
 		{
-			const float P = Phase * 2.f + (I % 4) * 1.6f + (I < 4 ? 0.f : PI);
+			const float P = Phase * 2.f + (I % 4) * 1.6f + (I < 4 ? 0.f : UE_PI);
 			FRotator R = Extra[I]->GetRelativeRotation();
 			R.Pitch = FMath::Sin(P) * 14.f * Moving;
 			if (Mode == TEXT("windup") && I % 4 == 0) R.Pitch = 35.f;

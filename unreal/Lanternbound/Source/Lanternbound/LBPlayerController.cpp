@@ -1,7 +1,6 @@
 #include "LBPlayerController.h"
 #include "LBGameInstance.h"
 #include "InputCoreTypes.h"
-#include "Framework/Application/SlateApplication.h"
 
 ALBPlayerController::ALBPlayerController()
 {

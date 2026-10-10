@@ -150,8 +150,8 @@ void ALBArea::BuildSky()
 	const int32 Rings = 12;
 	const float R = 40000.f;
 	auto P = [&](int32 S, int32 Ri) {
-		const float Theta = PI * Ri / Rings;
-		const float Phi = 2.f * PI * S / Segs;
+		const float Theta = UE_PI * Ri / Rings;
+		const float Phi = 2.f * UE_PI * S / Segs;
 		return FVector(FMath::Sin(Theta) * FMath::Cos(Phi) * R, FMath::Sin(Theta) * FMath::Sin(Phi) * R, FMath::Cos(Theta) * R);
 	};
 	auto Col = [&](const FVector& V) {
@@ -184,8 +184,8 @@ void ALBArea::BuildSky()
 		FRandomStream Rng(1234);
 		for (int32 I = 0; I < 400; I++)
 		{
-			const float Th = Rng.FRand() * 2.f * PI;
-			const float Ph = Rng.FRand() * PI * 0.45f;
+			const float Th = Rng.FRand() * 2.f * UE_PI;
+			const float Ph = Rng.FRand() * UE_PI * 0.45f;
 			const FVector C(FMath::Cos(Th) * FMath::Sin(Ph) * R * 0.97f, FMath::Sin(Th) * FMath::Sin(Ph) * R * 0.97f, FMath::Cos(Ph) * R * 0.97f);
 			M.Sphere(C, FVector(45.f), 4, 3, FLinearColor(0.5f, 0.5f, 0.5f));
 		}

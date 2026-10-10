@@ -73,7 +73,7 @@ void ALBFx::Burst(float X, float Y, float Z, const FLBBurst& B)
 	const float ExtraUp = B.UpBias < 0.f ? 0.f : B.UpBias;
 	for (int32 I = 0; I < N; I++)
 	{
-		const float Th = Rng.FRand() * 2.f * PI;
+		const float Th = Rng.FRand() * 2.f * UE_PI;
 		const float Ph = FMath::Acos(2.f * Rng.FRand() - 1.f);
 		const float Sp = B.Speed * (0.4f + Rng.FRand() * 0.6f);
 		const FVector P(X + (Rng.FRand() - 0.5f) * B.Spread, Y + (Rng.FRand() - 0.5f) * B.Spread, Z + (Rng.FRand() - 0.5f) * B.Spread);

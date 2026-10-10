@@ -69,8 +69,8 @@ void FLBMeshBuilder::Cylinder(const FVector& Base, float RadiusBottom, float Rad
 	const FVector Top = Base + FVector(0, 0, Height);
 	for (int32 I = 0; I < Segments; I++)
 	{
-		const float A0 = 2.f * PI * I / Segments;
-		const float A1 = 2.f * PI * (I + 1) / Segments;
+		const float A0 = 2.f * UE_PI * I / Segments;
+		const float A1 = 2.f * UE_PI * (I + 1) / Segments;
 		const FVector D0(FMath::Cos(A0), FMath::Sin(A0), 0.f);
 		const FVector D1(FMath::Cos(A1), FMath::Sin(A1), 0.f);
 		const FLinearColor Shade = Col * (0.85f + 0.15f * FMath::Cos(A0 - 0.8f));
@@ -89,8 +89,8 @@ void FLBMeshBuilder::Sphere(const FVector& Center, const FVector& Radii, int32 S
 	Segments = FMath::Max(4, Segments);
 	Rings = FMath::Max(3, Rings);
 	auto P = [&](int32 S, int32 R) {
-		const float Theta = PI * R / Rings;
-		const float Phi = 2.f * PI * S / Segments;
+		const float Theta = UE_PI * R / Rings;
+		const float Phi = 2.f * UE_PI * S / Segments;
 		return Center + FVector(FMath::Sin(Theta) * FMath::Cos(Phi) * Radii.X, FMath::Sin(Theta) * FMath::Sin(Phi) * Radii.Y, FMath::Cos(Theta) * Radii.Z);
 	};
 	for (int32 R = 0; R < Rings; R++)
@@ -121,7 +121,7 @@ void FLBMeshBuilder::Limb(const FVector& A, const FVector& B, float R0, float R1
 {
 	const FVector Axis = B - A;
 	const float Len = Axis.Size();
-	if (Len < KINDA_SMALL_NUMBER) return;
+	if (Len < UE_KINDA_SMALL_NUMBER) return;
 	const FQuat Q = FQuat::FindBetweenNormals(FVector::UpVector, Axis / Len);
 	FLBMeshBuilder Local;
 	Local.Cylinder(FVector::ZeroVector, R0, R1, Len, Segments, Col, true);

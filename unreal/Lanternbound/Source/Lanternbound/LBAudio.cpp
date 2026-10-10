@@ -29,7 +29,7 @@ namespace
 		case EWave::Square: return P < 0.5 ? 1.f : -1.f;
 		case EWave::Saw: return float(2.0 * P - 1.0);
 		case EWave::Triangle: return float(4.0 * FMath::Abs(P - 0.5) - 1.0);
-		default: return FMath::Sin(float(2.0 * PI * P));
+		default: return FMath::Sin(float(2.0 * UE_PI * P));
 		}
 	}
 
@@ -42,7 +42,7 @@ namespace
 		{
 			Freq = FMath::Clamp(Freq, 20.f, SR * 0.45f);
 			Q = FMath::Max(0.3f, Q);
-			const float W0 = 2.f * PI * Freq / SR;
+			const float W0 = 2.f * UE_PI * Freq / SR;
 			const float CosW = FMath::Cos(W0);
 			const float Alpha = FMath::Sin(W0) / (2.f * Q);
 			float b0, b1, b2;
@@ -487,7 +487,7 @@ namespace
 			{
 				const float T = float(I) / SR;
 				const float Depth = F * 0.012f * FMath::Clamp(T / FMath::Min(Dur, 0.4f), 0.f, 1.f);
-				P += (F + FMath::Sin(2.f * PI * 5.2f * T) * Depth) / SR;
+				P += (F + FMath::Sin(2.f * UE_PI * 5.2f * T) * Depth) / SR;
 				float G;
 				if (T < 0.09f) G = ExpRamp(0.0001f, 0.22f, T / 0.09f);
 				else if (T < D * 0.8f) G = 0.22f;

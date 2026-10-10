@@ -85,11 +85,8 @@ bool LBScene::Load(const FString& FileName, TArray<FLBScenePart>& OutParts, FStr
 		FLBScenePart Part;
 		const uint16 NameLen = R.U16();
 		if (!R.Need(NameLen)) break;
-		{
-			// Decode the UTF-8 name safely.
-			FUTF8ToTCHAR Conv(reinterpret_cast<const ANSICHAR*>(Bytes.GetData() + R.O), NameLen);
-			Part.Name = FString(Conv.Length(), Conv.Get());
-		}
+		// Part names are plain ASCII identifiers.
+		for (int32 C = 0; C < NameLen; C++) Part.Name.AppendChar(TCHAR(Bytes[R.O + C]));
 		R.O += NameLen;
 		Part.bVisible = R.U8() != 0;
 		const float X = R.F32();
