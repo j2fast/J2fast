@@ -65,3 +65,28 @@ Concise record of each milestone, what was verified and what was fixed.
   before the last polish commit. On the final build, 25/26 passed, with the
   playthrough hitting the intermittent catacomb transition noted in
   KNOWN_ISSUES. Two further playthrough runs on the final build passed.
+
+## M8: Unreal Engine 5.8 port (requested after delivery)
+* The user asked for a version that opens in Unreal Engine (they have 5.8.3).
+  Unreal still cannot run in this environment, so the port was written as a
+  data-driven C++ project that needs no binary assets.
+* `scripts/export-unreal.mjs` exports all content (weapons, items, enemies,
+  quests, dialogue, skills, shop), area layouts (heights, a 0.5 m walkability
+  grid, colliders, spawns, exits, NPCs, enemies, bosses, lights, ambient
+  particles) and **the exact scenery meshes** as compact binary files
+  (instanced where the web build instances: the bamboo grove went from 26 MB
+  to 2.9 MB).
+* The C++ port covers the rules, procedural character rigs and poses, player
+  combat, enemy and boss AI, projectiles, hazards, pickups, NPCs, the
+  companion, quests, dialogue, the ending, every menu, the HUD, remappable
+  input, save slots and the synthesised audio.
+* Verification so far:
+  * all 21 C++ files pass a clang syntax check against stand-in engine
+    headers (`unreal/tools/syntaxcheck`). The check found real bugs: mixed
+    float/double math and inconsistent smart-pointer use;
+  * the joint-rotation mapping was checked numerically against three.js's
+    Euler order (max error 6e-16). This led to replacing single `FRotator`
+    joints, which were wrong for compound poses, with per-axis component
+    chains, and to fixing an inverted roll axis;
+  * the binary mesh files decode correctly with a reference decoder.
+* Not verified: compiling and running inside Unreal Engine.

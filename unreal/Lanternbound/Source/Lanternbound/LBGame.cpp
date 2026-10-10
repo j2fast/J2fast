@@ -1470,6 +1470,8 @@ void FLBGame::ChooseDialogue(int32 Index)
 		return;
 	}
 	Runner.Choose(*D, Data, Index);
+	// The key that picked the choice must not also advance the next line.
+	if (PC) PC->ClearAll();
 	SfxUI(TEXT("uiConfirm"));
 	RunDialogueActions();
 	ShowDialogueNode();

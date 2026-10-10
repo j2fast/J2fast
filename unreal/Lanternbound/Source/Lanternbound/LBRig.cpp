@@ -9,9 +9,7 @@
 
 FLBPose& FLBPose::Set(ELBJoint Joint, float X, float Y, float Z)
 {
-	// Web build: x = swing about the lateral axis (negative = forward for hanging limbs),
-	// y = twist about vertical, z = sideways. See LBMath.h for the axis mapping.
-	J[int32(Joint)] = FRotator(-FMath::RadiansToDegrees(X), -FMath::RadiansToDegrees(Y), -FMath::RadiansToDegrees(Z));
+	J[int32(Joint)] = FVector(X, Y, Z);
 	return *this;
 }
 
@@ -25,10 +23,7 @@ FLBPose FLBPose::operator+(const FLBPose& O) const
 FLBPose FLBPose::Lerp(const FLBPose& A, const FLBPose& B, float T)
 {
 	FLBPose R;
-	for (int32 I = 0; I < int32(ELBJoint::Count); I++)
-	{
-		R.J[I] = FRotator(FMath::Lerp(A.J[I].Pitch, B.J[I].Pitch, T), FMath::Lerp(A.J[I].Yaw, B.J[I].Yaw, T), FMath::Lerp(A.J[I].Roll, B.J[I].Roll, T));
-	}
+	for (int32 I = 0; I < int32(ELBJoint::Count); I++) R.J[I] = A.J[I] + (B.J[I] - A.J[I]) * T;
 	return R;
 }
 
@@ -104,12 +99,24 @@ void FLBRig::ApplyPose(const FLBPose& Target, float Dt, float Rate)
 	const float K = 1.f - FMath::Exp(-Rate * Dt);
 	for (int32 I = 0; I < int32(ELBJoint::Count); I++)
 	{
-		FRotator& C = Current.J[I];
-		const FRotator& T = Target.J[I];
-		C.Pitch += (T.Pitch - C.Pitch) * K;
-		C.Yaw += (T.Yaw - C.Yaw) * K;
-		C.Roll += (T.Roll - C.Roll) * K;
-		if (Joints[I]) Joints[I]->SetRelativeRotation(C);
+		FVector& C = Current.J[I];
+		C += (Target.J[I] - C) * K;
+		// Axis mapping (web -> Unreal, see LBMath.h): a web x swing is a negative pitch, a web
+		// y twist is a negative yaw and a web z rotation is a positive roll. One component per
+		// axis keeps three.js's X-then-Y-then-Z composition exact for large angles.
+		const float Px = -FMath::RadiansToDegrees(C.X);
+		const float Yy = -FMath::RadiansToDegrees(C.Y);
+		const float Rz = FMath::RadiansToDegrees(C.Z);
+		if (JointX[I] && JointY[I] && Joints[I])
+		{
+			JointX[I]->SetRelativeRotation(FRotator(Px, 0.f, 0.f));
+			JointY[I]->SetRelativeRotation(FRotator(0.f, Yy, 0.f));
+			Joints[I]->SetRelativeRotation(FRotator(0.f, 0.f, Rz));
+		}
+		else if (Joints[I])
+		{
+			Joints[I]->SetRelativeRotation(FRotator(Px, Yy, Rz));
+		}
 	}
 }
 
@@ -129,6 +136,18 @@ namespace
 		C->SetRelativeLocation(Rel);
 		C->RegisterComponent();
 		return C;
+	}
+
+	/** A pose-able joint: x-swing, y-twist and z components nested in that order. Returns the innermost. */
+	USceneComponent* MakeChain(AActor* Owner, USceneComponent* Parent, const FVector& Rel, FLBRig& R, ELBJoint Joint)
+	{
+		USceneComponent* X = MakeJoint(Owner, Parent, Rel);
+		USceneComponent* Y = MakeJoint(Owner, X, FVector::ZeroVector);
+		USceneComponent* Z = MakeJoint(Owner, Y, FVector::ZeroVector);
+		R.JointX[int32(Joint)] = X;
+		R.JointY[int32(Joint)] = Y;
+		R.Joints[int32(Joint)] = Z;
+		return Z;
 	}
 
 	UProceduralMeshComponent* MakeMesh(AActor* Owner, USceneComponent* Parent, const FLBMeshBuilder& B, UMaterialInterface* Mat, TArray<UProceduralMeshComponent*>& Out)
@@ -154,8 +173,7 @@ FLBRig LBRigBuilder::Humanoid(AActor* Owner, USceneComponent* Parent, const FLBL
 	R.Spinner = MakeJoint(Owner, R.Root, FVector(0, 0, 55));
 	R.Hips = MakeJoint(Owner, R.Spinner, FVector(0, 0, 40));
 	R.Height = 185.f * L.Scale;
-	USceneComponent* Torso = MakeJoint(Owner, R.Hips, FVector::ZeroVector);
-	R.Joints[int32(J::Torso)] = Torso;
+	USceneComponent* Torso = MakeChain(Owner, R.Hips, FVector::ZeroVector, R, J::Torso);
 
 	FLBMeshBuilder M;
 	if (L.bStone) M.Box(FVector(0, 0, 31), FVector(20 * B, 31 * B, 31), L.Cloth);
@@ -172,8 +190,7 @@ FLBRig LBRigBuilder::Humanoid(AActor* Owner, USceneComponent* Parent, const FLBL
 	}
 
 	// Head
-	USceneComponent* Head = MakeJoint(Owner, Torso, FVector(0, 0, 70));
-	R.Joints[int32(J::Head)] = Head;
+	USceneComponent* Head = MakeChain(Owner, Torso, FVector(0, 0, 70), R, J::Head);
 	M.Reset();
 	M.Cylinder(FVector(0, 0, -8), 8, 7, 12, 6, L.Skin);
 	if (L.bStone) M.Box(FVector(0, 0, 17), FVector(17, 17, 17), L.Skin);
@@ -220,13 +237,13 @@ FLBRig LBRigBuilder::Humanoid(AActor* Owner, USceneComponent* Parent, const FLBL
 	for (const float Side : {1.f, -1.f})
 	{
 		const bool bRight = Side > 0;
-		USceneComponent* Arm = MakeJoint(Owner, Torso, FVector(0, Side * 30 * B, 56));
+		USceneComponent* Arm = MakeChain(Owner, Torso, FVector(0, Side * 30 * B, 56), R, bRight ? J::ArmR : J::ArmL);
 		M.Reset();
 		if (L.bStone) M.Box(FVector(0, 0, -16), FVector(8 * B, 8 * B, 16), L.Cloth);
 		else M.Cylinder(FVector(0, 0, -32), 6.5f * B, 7.5f * B, 32, 8, L.Cloth);
 		M.Cylinder(FVector(0, 0, -35), 14 * B, 11 * B, 20, 8, L.Cloth2, false);
 		MakeMesh(Owner, Arm, M, Mat, R.Meshes);
-		USceneComponent* Fore = MakeJoint(Owner, Arm, FVector(0, 0, -32));
+		USceneComponent* Fore = MakeChain(Owner, Arm, FVector(0, 0, -32), R, bRight ? J::ForeR : J::ForeL);
 		M.Reset();
 		if (L.bStone) M.Box(FVector(0, 0, -14), FVector(7 * B, 7 * B, 14), L.Skin);
 		else M.Cylinder(FVector(0, 0, -28), 5 * B, 6 * B, 28, 8, L.Skin);
@@ -236,8 +253,6 @@ FLBRig LBRigBuilder::Humanoid(AActor* Owner, USceneComponent* Parent, const FLBL
 		if (L.bStone) M.Box(FVector::ZeroVector, FVector(7, 7, 7), L.Skin);
 		else M.Sphere(FVector::ZeroVector, FVector(6.5f * B), 8, 5, L.Skin);
 		MakeMesh(Owner, Hand, M, Mat, R.Meshes);
-		R.Joints[int32(bRight ? J::ArmR : J::ArmL)] = Arm;
-		R.Joints[int32(bRight ? J::ForeR : J::ForeL)] = Fore;
 		(bRight ? R.HandR : R.HandL) = Hand;
 	}
 
@@ -245,19 +260,17 @@ FLBRig LBRigBuilder::Humanoid(AActor* Owner, USceneComponent* Parent, const FLBL
 	for (const float Side : {1.f, -1.f})
 	{
 		const bool bRight = Side > 0;
-		USceneComponent* Leg = MakeJoint(Owner, R.Hips, FVector(0, Side * 12 * B, 0));
+		USceneComponent* Leg = MakeChain(Owner, R.Hips, FVector(0, Side * 12 * B, 0), R, bRight ? J::LegR : J::LegL);
 		M.Reset();
 		if (L.bStone) M.Box(FVector(0, 0, -21), FVector(10 * B, 10 * B, 21), L.Cloth2);
 		else M.Cylinder(FVector(0, 0, -42), 8 * B, 9.5f * B, 42, 8, L.Cloth2);
 		MakeMesh(Owner, Leg, M, Mat, R.Meshes);
-		USceneComponent* Shin = MakeJoint(Owner, Leg, FVector(0, 0, -42));
+		USceneComponent* Shin = MakeChain(Owner, Leg, FVector(0, 0, -42), R, bRight ? J::ShinR : J::ShinL);
 		M.Reset();
 		if (L.bStone) M.Box(FVector(0, 0, -21), FVector(9 * B, 9 * B, 21), L.Cloth);
 		else M.Cylinder(FVector(0, 0, -42), 6 * B, 7.5f * B, 42, 8, L.Skin);
 		M.Box(FVector(4, 0, -44), FVector(11, 6 * B, 3.5f), H(0x2b2430));
 		MakeMesh(Owner, Shin, M, Mat, R.Meshes);
-		R.Joints[int32(bRight ? J::LegR : J::LegL)] = Leg;
-		R.Joints[int32(bRight ? J::ShinR : J::ShinL)] = Shin;
 	}
 	return R;
 }

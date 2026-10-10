@@ -222,7 +222,7 @@ FLBInputFrame ALBPlayerController::Sample(float Dt)
 	if (F.IsDown(ELBAction::MoveLeft)) F.MoveX -= 1.f;
 
 	// Mouse: Unreal reports +Y when moving up; the camera expects +Y = down (like the browser).
-	const float MouseScale = 0.0025f * 4.f * S.MouseSensitivity;
+	const float MouseScale = 0.0025f * S.MouseSensitivity;
 	F.LookX += MouseDX * MouseScale;
 	F.LookY -= MouseDY * MouseScale;
 	MouseDX = MouseDY = 0.f;

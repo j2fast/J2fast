@@ -13,11 +13,16 @@ class UMaterialInterface;
 
 enum class ELBJoint : uint8 { Torso, Head, ArmR, ForeR, ArmL, ForeL, LegR, ShinR, LegL, ShinL, Count };
 
+/**
+ * Joint rotations in the web build's convention: radians about the joint's x
+ * (lateral swing), y (twist) and z (sideways) axes, applied in three.js 'XYZ'
+ * order. Each rig joint is a chain of three single-axis components so the
+ * composition matches exactly (see FLBRig::ApplyPose).
+ */
 struct FLBPose
 {
-	FRotator J[int32(ELBJoint::Count)];
-	FLBPose() { for (FRotator& R : J) R = FRotator::ZeroRotator; }
-	/** Set a joint from web-build radians (x, y, z), converted to Unreal degrees. */
+	FVector J[int32(ELBJoint::Count)];
+	FLBPose() { for (FVector& R : J) R = FVector::ZeroVector; }
 	FLBPose& Set(ELBJoint Joint, float X, float Y = 0.f, float Z = 0.f);
 	FLBPose operator+(const FLBPose& O) const;
 	static FLBPose Lerp(const FLBPose& A, const FLBPose& B, float T);
@@ -51,7 +56,11 @@ struct LANTERNBOUND_API FLBRig
 	USceneComponent* Root = nullptr;
 	USceneComponent* Spinner = nullptr;
 	USceneComponent* Hips = nullptr;
+	/** Innermost component of each joint chain (children attach here). */
 	USceneComponent* Joints[int32(ELBJoint::Count)] = {};
+	/** Outer (x swing) and middle (y twist) components of each joint chain; null for simple joints. */
+	USceneComponent* JointX[int32(ELBJoint::Count)] = {};
+	USceneComponent* JointY[int32(ELBJoint::Count)] = {};
 	USceneComponent* HandR = nullptr;
 	USceneComponent* HandL = nullptr;
 	/** Creature extra parts (legs, tails, hands) animated procedurally. */

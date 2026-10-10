@@ -268,7 +268,12 @@ void FLBGame::UpdateUi(float Dt)
 		{
 			bool bAdvance = PC->bMouseClicked;
 			for (const ELBNav Nav : Navs) bAdvance |= Nav == ELBNav::Confirm;
-			if (bAdvance) AdvanceDialogue();
+			if (bAdvance)
+			{
+				AdvanceDialogue();
+				// Enter/Space/click advanced the line; drop the same press for gameplay actions.
+				PC->ClearAll();
+			}
 		}
 		return;
 	}

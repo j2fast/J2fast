@@ -4,10 +4,17 @@ This is an honest list of what is missing, rough or unverified.
 
 ## Scope and platform
 
-* **Not an Unreal Engine project.** Unreal could not be installed in the build
-  environment (it needs an Epic account sign-in and a GPU desktop). The game is
-  built with Three.js and runs in a desktop web browser. DESIGN.md §9 maps the
-  architecture onto Unreal for a future port.
+* **The playable, tested build is not Unreal.** Unreal could not be installed in
+  the build environment (it needs an Epic account sign-in and a GPU desktop).
+  The tested game is built with Three.js and runs in a desktop web browser.
+* **The Unreal Engine 5.8 port (`unreal/Lanternbound`) has never been compiled
+  or run in Unreal.** It passes a clang syntax check against stand-in engine
+  headers, and its coordinate and rotation math was verified numerically. Real
+  engine API differences may still cause compile errors on the first build.
+  Its lighting values are converted by formula and were never tuned by eye,
+  and the triangle winding convention for the exported meshes is an assumption
+  (a config switch flips it). See its README for the known differences from
+  the web version.
 * **Single-player only.** Systems are structured so co-op could be added
   later, but no networking exists.
 * **Not based on the user's installed game.** The reference game on the user's

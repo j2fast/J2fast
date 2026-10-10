@@ -62,3 +62,19 @@ screenshot is needed. Screenshots are written to `test-screens/`.
 ## Project layout
 
 See [DESIGN.md](DESIGN.md#6-architecture).
+
+## Unreal Engine 5.8 port
+
+The C++ port lives in `unreal/Lanternbound`. Open it in Unreal as described in
+[unreal/Lanternbound/README_UNREAL.md](../unreal/Lanternbound/README_UNREAL.md).
+Two helper commands run from the repository root:
+
+```bash
+node scripts/export-unreal.mjs              # regenerate unreal/Lanternbound/Content/Data from the web build
+python3 unreal/tools/syntaxcheck/check.py   # clang syntax check of the port against stand-in engine headers
+```
+
+The exporter starts a Vite dev server and drives the game headlessly through
+the `?test=1` hooks (`exportData`, `exportArea`, `exportAreaMesh`, `exportWalk`,
+`exportProps`). The syntax check needs clang 15 or newer. It is **not** a
+substitute for compiling in Unreal.

@@ -64,15 +64,24 @@ menu, and the game autosaves on every area change.
 * [docs/FEATURES.md](docs/FEATURES.md): implemented features and how each was verified
 * [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md): known issues and limitations
 * [docs/PROGRESS_LOG.md](docs/PROGRESS_LOG.md): development log
+* [unreal/Lanternbound/README_UNREAL.md](unreal/Lanternbound/README_UNREAL.md): the Unreal Engine 5.8 port
 
-## Engine note
+## Engine note and the Unreal Engine port
 
 This was requested as an Unreal Engine project. Unreal is not available in the
 build environment: it needs an Epic account sign-in, and the environment is a
-headless Linux container with no GPU. The game is built instead on
+headless Linux container with no GPU. The game was therefore built first on
 **Three.js + TypeScript**, so it could be fully built and automatically tested
-here. See [docs/DESIGN.md](docs/DESIGN.md) for the reasoning and an Unreal
-porting map.
+here. See [docs/DESIGN.md](docs/DESIGN.md) for the reasoning.
+
+There is now also an **Unreal Engine 5.8 C++ port** in
+[`unreal/Lanternbound`](unreal/Lanternbound). Its content is generated from the
+same data, and it has the same world, combat, enemies, bosses, quests, menus,
+saves and audio. It opens in the Unreal editor with no binary assets to import.
+**It has not been compiled in Unreal yet**, because the engine is unavailable
+here; only a syntax check against stand-in engine headers has been run. Read
+[unreal/Lanternbound/README_UNREAL.md](unreal/Lanternbound/README_UNREAL.md)
+before opening it.
 
 ## Originality
 

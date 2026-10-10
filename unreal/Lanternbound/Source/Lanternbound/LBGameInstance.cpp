@@ -21,6 +21,12 @@ void ULBGameInstance::PersistSettings()
 void ULBGameInstance::ApplyDisplaySettings()
 {
 	if (!GEngine) return;
+	// Only touch the engine settings when the display options actually changed.
+	static int32 LastQuality = -1;
+	static int32 LastFullscreen = -1;
+	if (LastQuality == Settings.Quality && LastFullscreen == int32(Settings.bFullscreen)) return;
+	LastQuality = Settings.Quality;
+	LastFullscreen = int32(Settings.bFullscreen);
 	if (UGameUserSettings* U = GEngine->GetGameUserSettings())
 	{
 		U->SetOverallScalabilityLevel(Settings.Quality);

@@ -74,6 +74,7 @@ FLBStats FLBRules::ComputeStats(const ULBData& D, const FLBGameData& G)
 		for (const FLBStat& P : Def->PerRank) AddStat(S, P.Stat, P.Value * Rank);
 	}
 	S.MaxHp = FMath::RoundToFloat(S.MaxHp);
+	S.Atk = FMath::RoundToFloat(S.Atk * 10.f) / 10.f;
 	S.Def = FMath::RoundToFloat(S.Def);
 	S.Crit = FMath::Min(0.75f, S.Crit);
 	return S;
@@ -550,6 +551,11 @@ void FLBRules::CheckCollect(const ULBData& D, FLBGameData& G, FRandomStream& Rng
 		else if (St && St->Progress != Have)
 		{
 			St->Progress = Have;
+			FLBQuestUpdate U;
+			U.Kind = FLBQuestUpdate::Progress;
+			U.QuestId = Id;
+			U.Text = FString::Printf(TEXT("%s: %d/%d"), *Obj->Text, Have, Need);
+			Out.Add(U);
 		}
 	}
 }
