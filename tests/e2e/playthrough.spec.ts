@@ -203,8 +203,8 @@ test('complete the story from new game to the ending', async ({ page }) => {
   s = await clearNear(page, 34, 40, 14);
   await shopAndTrain(page);
   s = await teleport(page, 34, 49.5);
-  s = await step(page, 3);
-  expect(s.area).toBe('catacombs');
+  for (let i = 0; i < 10 && s.area !== 'catacombs'; i++) s = await step(page, 3);
+  expect(s.area, `door: mode ${s.mode} pos ${s.player.x.toFixed(1)},${s.player.z.toFixed(1)} state ${s.player.state} boss ${s.bossActive}`).toBe('catacombs');
 
   // ---------------------------------------------------------------- Dungeon
   s = await clearNear(page, 0, 30, 14);

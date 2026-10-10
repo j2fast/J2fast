@@ -56,3 +56,12 @@ Concise record of each milestone, what was verified and what was fixed.
     Hollowed now cross over when the Lantern is relit.
 * Added ambient villagers whose lines change after the ending, and a
   one-time hint the first time spirit is full.
+
+## Final verification (shipped build)
+* `release/Lanternbound.html` is byte-identical to `npm run build` output and
+  was verified to run from `file://` (new game, save to slot, no errors, test
+  hooks absent without `?test`).
+* Unit: 63/63 passed. End-to-end: 26/26 passed on the full-suite run
+  before the last polish commit. On the final build, 25/26 passed, with the
+  playthrough hitting the intermittent catacomb transition noted in
+  KNOWN_ISSUES. Two further playthrough runs on the final build passed.

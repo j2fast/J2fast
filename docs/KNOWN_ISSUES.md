@@ -59,3 +59,13 @@ This is an honest list of what is missing, rough or unverified.
   site data deletes them, and moving `Lanternbound.html` to a different folder
   changes the origin. Use **Export** and **Import** in the Load menu to move
   saves.
+
+## Test suite notes
+
+* Across 8 full-playthrough runs (game seeds vary by run), one run failed to
+  move into the Hollow Catacombs on the first frames after teleporting to the
+  door straight after a fight. The transition works when tested in isolation,
+  and in the following runs. The test now gives the transition up to
+  30 frames and prints diagnostics if it fails again; the root cause is
+  unconfirmed. Earlier intermittent failures had a test-side cause (pressing
+  interact during an attack's recovery) and were fixed.
