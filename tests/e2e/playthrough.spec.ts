@@ -3,7 +3,7 @@
 // normal player inputs on Normal difficulty — no god mode, no damage cheats.
 
 import { expect, Page, test } from '@playwright/test';
-import { DebugState, boot, botUntil, enterArea, newGame, press, screenshot, state, step, talkTo, teleport, trackErrors } from './helpers';
+import { DebugState, boot, botUntil, enterArea, interact, newGame, press, screenshot, state, step, talkTo, teleport, trackErrors } from './helpers';
 
 test.setTimeout(1_500_000);
 
@@ -153,7 +153,7 @@ test('complete the story from new game to the ending', async ({ page }) => {
     [18, 37],
   ]) {
     await teleport(page, cx, cz - 1.8, cx, cz);
-    await press(page, 'KeyE', 3);
+    await interact(page);
   }
   s = await teleport(page, 0, 42);
   s = await step(page, 3);
@@ -186,9 +186,16 @@ test('complete the story from new game to the ending', async ({ page }) => {
     [46, 4],
     [-4, -46],
   ]) {
-    s = await clearNear(page, bx, bz + 4, 16);
-    await teleport(page, bx, bz - 2.2, bx, bz);
-    s = await press(page, 'KeyE', 3);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      s = await clearNear(page, bx, bz + 2, 16 + attempt * 6);
+      await teleport(page, bx, bz - 2.2, bx, bz);
+      s = await interact(page);
+      const litNow = await page.evaluate(([x, z]) => (window as any).__lanternbound.game.data.world.litBraziers.some((id: string) => {
+        const io = (window as any).__lanternbound.game.world.interactObjs.get(id);
+        return io && io.def.x === x && io.def.z === z;
+      }), [bx, bz]);
+      if (litNow) break;
+    }
   }
   expect(s.flags.catacombs_open).toBe(1);
   expect(s.quests.active.mq_marsh.stage).toBe(2);
@@ -201,12 +208,16 @@ test('complete the story from new game to the ending', async ({ page }) => {
 
   // ---------------------------------------------------------------- Dungeon
   s = await clearNear(page, 0, 30, 14);
-  s = await clearNear(page, 30, 32, 12);
-  await teleport(page, 34, 33.8, 34, 36);
-  s = await press(page, 'KeyE', 3);
-  s = await clearNear(page, -30, 32, 12);
-  await teleport(page, -34, 33.8, -34, 36);
-  s = await press(page, 'KeyE', 3);
+  for (const [sx, flag] of [
+    [34, 'seal_east'],
+    [-34, 'seal_west'],
+  ] as const) {
+    for (let attempt = 0; attempt < 4 && !s.flags[flag]; attempt++) {
+      s = await clearNear(page, sx > 0 ? 30 : -30, 32, 12 + attempt * 4);
+      await teleport(page, sx, 33.8, sx, 36);
+      s = await interact(page);
+    }
+  }
   expect(s.flags.seal_east).toBe(1);
   expect(s.flags.seal_west).toBe(1);
   for (const [cx, cz] of [
@@ -214,7 +225,7 @@ test('complete the story from new game to the ending', async ({ page }) => {
     [-35, 27],
   ]) {
     await teleport(page, cx + (cx > 0 ? -1.8 : 1.8), cz, cx, cz);
-    await press(page, 'KeyE', 3);
+    await interact(page);
   }
   await autoEquip(page);
   // The boss door is open: walk through the corridor.
@@ -258,7 +269,7 @@ test('complete the story from new game to the ending', async ({ page }) => {
   await teleport(page, 0, 66, 0, 74);
   s = await step(page, 3);
   expect(s.interaction).toContain('Spirit Lantern');
-  s = await press(page, 'KeyE', 5);
+  s = await interact(page);
   expect(s.mode).toBe('cutscene');
   expect(s.ending).toBe(true);
   await screenshot(page, 'ending-lantern');

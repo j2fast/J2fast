@@ -103,9 +103,12 @@ export async function talkTo(page: Page, npcId: string, choices: number[] = []):
   if (!npc) throw new Error(`NPC ${npcId} not present in ${s0.area}`);
   await teleport(page, npc.x, npc.z - 1.8, npc.x, npc.z);
   let s = await step(page, 2);
+  // Wait for any attack recovery to finish, like a player would.
+  for (let i = 0; i < 30 && s.player.state !== 'normal'; i++) s = await step(page, 5);
   expect(s.interaction).toContain('Talk');
   s = await press(page, 'KeyE', 2);
-  expect(s.mode).toBe('dialogue');
+  for (let i = 0; i < 10 && s.mode !== 'dialogue'; i++) s = await step(page, 4);
+  expect(s.mode, `talk to ${npcId} failed: player ${s.player.state}, interaction ${s.interaction}, screen ${s.screen}`).toBe('dialogue');
   const queue = [...choices];
   for (let i = 0; i < 40 && s.mode === 'dialogue'; i++) {
     const hasChoices = await page.locator('#dialogue [data-choice]').count();
@@ -137,5 +140,12 @@ export async function botUntil(page: Page, until: string, maxSteps = 6000, opts:
 export async function screenshot(page: Page, name: string) {
   await page.evaluate(() => (window as any).__lanternbound.step(1));
   await page.waitForTimeout(700);
-  await page.screenshot({ path: `test-results/screens/${name}.png` });
+  await page.screenshot({ path: `test-screens/${name}.png` });
+}
+
+/** Press interact once the player is idle (after any attack recovery). */
+export async function interact(page: Page): Promise<DebugState> {
+  let s = await step(page, 2);
+  for (let i = 0; i < 30 && s.player.state !== 'normal'; i++) s = await step(page, 5);
+  return press(page, 'KeyE', 4);
 }

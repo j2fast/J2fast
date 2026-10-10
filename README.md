@@ -9,6 +9,24 @@ catacomb and a burning summit to relight it.
 Chrome, Edge or Firefox. It's one self-contained file: no install, no server,
 works offline.
 
+| | |
+|---|---|
+| ![Title](docs/screenshots/title.png) | ![Akari Village](docs/screenshots/village.png) |
+| ![Kuroganemaru](docs/screenshots/boss-oni.png) | ![Hollow Catacombs](docs/screenshots/catacombs.png) |
+| ![Yomikage](docs/screenshots/boss-yomikage.png) | ![Ending](docs/screenshots/ending.png) |
+
+## Quick start
+
+1. Open `release/Lanternbound.html` in a desktop browser.
+2. Choose **New Game**. Click the game view to capture the mouse for camera control.
+3. Move with **WASD**, attack with **LMB/J**, heavy with **RMB/K**, dodge with
+   **Space**, talk with **E**, pause with **Esc**. A gamepad also works.
+   See [docs/CONTROLS.md](docs/CONTROLS.md) for everything else.
+4. Follow the gold diamond waypoint and the quest tracker (top right).
+
+The main story should take roughly an hour. That is an estimate: it has not been timed with human players. You can save at any time from the pause
+menu, and the game autosaves on every area change.
+
 ## Features
 
 * Fast third-person combat: light combos, heavy attacks, dodge-roll with

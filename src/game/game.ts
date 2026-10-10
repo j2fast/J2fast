@@ -106,6 +106,7 @@ export class Game implements GameCtx {
   private running = false;
   lastAutosave = 0;
   private spawnCounter = 0;
+  private interactBufferT = 0;
 
   constructor(private container: HTMLElement) {
     this.settings = loadSettings(this.store);
@@ -403,7 +404,7 @@ export class Game implements GameCtx {
 
   private cameraStep(dt: number, lx: number, ly: number) {
     const lock = this.player.lockTarget;
-    const extra = this.bossActive ? 2.2 : 0;
+    const extra = this.mode === 'cutscene' ? 7 : this.bossActive ? 2.2 : 0;
     this.camRig.update(dt, lx, ly, this.player.pos, lock ? lock.pos : null, this.world, extra);
     this.world.updateShadowFocus(this.player.pos);
     this.audio.setListener(this.player.pos.x, this.player.pos.z, this.camRig.yaw);
@@ -434,7 +435,13 @@ export class Game implements GameCtx {
     this.player.update(dt, frame, this.camRig.yaw, this);
     this.player.root.updateMatrixWorld(true);
     this.player.updateTrail(dt);
-    if (this.player.state === 'normal' && frame.pressed.interact) this.doInteract();
+    // Buffer the interact button briefly so it isn't lost during an attack's recovery.
+    if (frame.pressed.interact) this.interactBufferT = 0.4;
+    this.interactBufferT -= dt;
+    if (this.interactBufferT > 0 && this.player.state === 'normal' && this.interaction) {
+      this.interactBufferT = 0;
+      this.doInteract();
+    }
 
     for (const e of this.enemies) e.update(dt, this);
     this.separateEnemies();
@@ -450,6 +457,11 @@ export class Game implements GameCtx {
     for (const c of this.pickups.update(dt, this.player.pos, (x, z) => this.world.groundY(x, z))) this.collect(c);
     for (const n of this.npcs) n.update(dt, this.player.pos);
 
+    // One-time tutorial hint for spirit abilities.
+    if (!this.data.flags.hint_ability && this.player.spirit >= this.player.family.ability.cost) {
+      setFlag(this.data, 'hint_ability');
+      this.ui.toast(`Spirit is ready! Press ${this.input.prompt('ability')} to use ${this.player.family.ability.name}.`, 'quest');
+    }
     this.checkExits(dt);
     this.checkMarkers();
     this.checkBossTrigger();
@@ -1221,15 +1233,29 @@ export class Game implements GameCtx {
   private startEnding() {
     this.handleQuestUpdates(this.quests.notify({ type: 'interact', target: 'lantern' }));
     this.data.ending = true;
+    setFlag(this.data, 'lantern_lit');
     for (const id of ['ember_core_1', 'ember_core_2', 'ember_core_3']) removeItem(this.data, id, 1);
     this.world.setLanternLit(true);
     this.world.refreshDynamic(this.data);
+    // Every remaining Hollowed remembers itself and crosses over.
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      this.effects.burst(e.pos.x, e.pos.y + 1, e.pos.z, { count: 30, color: 0xbfe8ff, speed: 3, life: 1.6, gravity: -3, size: 'm' });
+      e.die(this);
+    }
+    this.projectiles.clear();
+    this.hazards.clear();
+    this.effects.telegraphs.clear();
+    this.ui.clearCaptions();
     this.music.play('ending');
     this.mode = 'cutscene';
     this.player.state = 'frozen';
     this.player.lockTarget = null;
     this.endingIndex = -1;
     this.endingT = 99;
+    // Frame the relit Lantern: look up at it from behind the Warden.
+    this.camRig.yaw = yawTo(this.player.pos.x, this.player.pos.z, 0, 74);
+    this.camRig.pitch = -0.05;
     this.ui.showHud(false);
     this.input.exitPointerLock();
     this.effects.burst(0, this.world.groundY(0, 74) + 8.4, 74, { count: 120, color: 0xffd27a, speed: 10, life: 2.5, gravity: -1, size: 'm' });
@@ -1239,7 +1265,7 @@ export class Game implements GameCtx {
 
   private stepCutscene(dt: number, f: InputFrame) {
     this.endingT += dt;
-    this.camRig.yaw += dt * 0.12;
+    this.camRig.yaw += dt * 0.04;
     const skip = f.pressed.interact || f.pressed.attack || f.pressed.pause;
     if (this.endingT > 5 || (skip && this.endingT > 0.4)) {
       this.endingIndex++;

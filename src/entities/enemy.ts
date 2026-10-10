@@ -825,8 +825,10 @@ export class Enemy {
       this.cancelAttack(ctx);
       this.invulnerable = true;
       this.setState('phase');
+      // One line per phase transition (the last line repeats if there are more phases than lines).
       const lines = BOSS_LINES[this.def.id]?.phase ?? [];
-      lines.forEach((l, i) => setTimeout(() => ctx.caption(l, this.def.name, 2.6), i * 1400));
+      const line = lines[Math.min(this.phase - 2, lines.length - 1)];
+      if (line) ctx.caption(line, this.def.name, 2.8);
       ctx.sfx('bossRoar', this.pos.x, this.pos.z);
       ctx.effects.shockwave(this.pos.x, this.pos.y, this.pos.z, 8, 0xff5a3a, 0.7);
       ctx.shake(0.6);

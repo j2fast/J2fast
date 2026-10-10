@@ -5,7 +5,7 @@ import type { GameData } from './state';
 import { MAX_LEVEL } from './stats';
 
 export function xpToNext(level: number): number {
-  return 30 + 30 * level;
+  return 40 + 40 * level;
 }
 
 /** Add XP and return the number of levels gained. */

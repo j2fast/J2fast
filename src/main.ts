@@ -63,6 +63,7 @@ function boot() {
        */
       bot(n: number, opts: BotOptions = {}, until?: string) {
         const bot = ((hooks as unknown as { _bot?: TestBot })._bot ??= new TestBot(opts));
+        bot.opts = opts;
         const pred = until ? (new Function('s', `return (${until});`) as (s: ReturnType<Game['debugState']>) => boolean) : null;
         let i = 0;
         for (; i < n; i++) {

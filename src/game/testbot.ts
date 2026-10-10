@@ -26,7 +26,7 @@ export class TestBot {
   heals = 0;
   attacks = 0;
 
-  constructor(private opts: BotOptions = {}) {}
+  constructor(public opts: BotOptions = {}) {}
 
   target(g: Game): Enemy | null {
     if (g.bossActive && g.boss?.alive) return g.boss;

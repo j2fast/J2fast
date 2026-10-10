@@ -64,6 +64,9 @@ export const NPC_NAMES: Record<string, string> = {
   hotaru: 'Hotaru',
   kohaku: 'Kohaku',
   warden: 'Warden',
+  farmer: 'Farmer Tomoe',
+  child: 'Little Ren',
+  fisher: 'Old Sanpei',
 };
 
 const d = (id: string, nodes: Record<string, DialogueNode>, start = 'a'): Dialogue => ({ id, start, nodes });
@@ -295,6 +298,24 @@ export const DIALOGUES: Record<string, Dialogue> = Object.fromEntries(
         actions: ['flag:kohaku_joined'],
       },
     }),
+    // ------------------------------------------------------------ Villagers
+    d('farmer_before', { a: { speaker: 'farmer', text: 'Ash on the wind again. My rice will taste of smoke this year — if the Hollowed leave any of it.' } }),
+    d('farmer_after', { a: { speaker: 'farmer', text: 'Smell that? Clean air. I may even plant the east terrace again. Thank you, Warden.' } }),
+    d('child_before', {
+      a: {
+        speaker: 'child',
+        text: 'Are you really a Warden? Can I hold your sword?',
+        choices: [
+          { text: 'Not today.', next: 'b' },
+          { text: 'When you are older.', next: 'b' },
+        ],
+      },
+      b: { speaker: 'child', text: "Fine. But when I'm a Warden I'm getting a BIGGER lantern." },
+    }),
+    d('child_after', { a: { speaker: 'child', text: "I saw it! The whole mountain lit up! I'm going to be a Warden. Definitely. Probably." } }),
+    d('fisher_before', { a: { speaker: 'fisher', text: "Three nights without the Lantern. The fish won't bite, and the dead won't rest. Bad omens, both." } }),
+    d('fisher_after', { a: { speaker: 'fisher', text: 'The fish are biting again. And last night I dreamed of my wife, smiling, on the far shore. Good omens, both.' } }),
+
     d('kohaku_idle', {
       a: { speaker: 'kohaku', text: "What? I'm resting my eyes. I can still smell the Hollowed coming." },
     }),
@@ -337,6 +358,9 @@ export const NPC_DIALOGUE: Record<string, NpcDialogueEntry[]> = {
     { cond: { active: 'sq_firefly:0' }, dialogue: 'hotaru_found', quest: 'sq_firefly' },
     { dialogue: 'hotaru_idle', noTalk: true },
   ],
+  farmer: [{ cond: { flag: 'lantern_lit' }, dialogue: 'farmer_after', noTalk: true }, { dialogue: 'farmer_before', noTalk: true }],
+  child: [{ cond: { flag: 'lantern_lit' }, dialogue: 'child_after', noTalk: true }, { dialogue: 'child_before', noTalk: true }],
+  fisher: [{ cond: { flag: 'lantern_lit' }, dialogue: 'fisher_after', noTalk: true }, { dialogue: 'fisher_before', noTalk: true }],
   kohaku: [
     { cond: { active: 'mq_bamboo:2' }, dialogue: 'kohaku_freed', quest: 'mq_bamboo' },
     { cond: { notFlag: 'kohaku_joined' }, dialogue: 'kohaku_caged', noTalk: true },

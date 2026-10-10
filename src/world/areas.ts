@@ -210,6 +210,9 @@ export function buildVillage(): AreaBuild {
       { id: 'kanetsugu', x: -9.5, z: 4.5, yaw: Math.PI / 2 },
       { id: 'ohana', x: 10, z: 7, yaw: -Math.PI / 2 },
       { id: 'mikoto', x: 3, z: 27, yaw: Math.PI },
+      { id: 'farmer', x: -13, z: -16, yaw: Math.PI / 2 },
+      { id: 'child', x: 6, z: -4, yaw: -Math.PI / 2 },
+      { id: 'fisher', x: 9, z: 14, yaw: Math.PI },
     ],
     enemies: [
       { id: 'dummy1', enemy: 'training_dummy', x: 21.5, z: -3, level: 1, respawn: 4 },

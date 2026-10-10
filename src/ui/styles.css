@@ -502,34 +502,34 @@ body {
   animation: slidein 0.25s ease-out;
   transition: opacity 0.4s;
 }
-.toast.quest {
+.toast.t-quest {
   border-color: var(--gold);
   color: var(--gold);
 }
-.toast.progress {
+.toast.t-progress {
   border-color: var(--muted);
   color: var(--text);
 }
-.toast.error {
+.toast.t-error {
   border-color: var(--red);
   color: #ffb0a0;
 }
-.toast.rarity0 {
+.toast.t-rarity0 {
   border-color: #d9d4c7;
 }
-.toast.rarity1 {
+.toast.t-rarity1 {
   border-color: #7fd17a;
   color: #a8f0a0;
 }
-.toast.rarity2 {
+.toast.t-rarity2 {
   border-color: #5fa8ff;
   color: #9ac8ff;
 }
-.toast.rarity3 {
+.toast.t-rarity3 {
   border-color: #c27bff;
   color: #ddb0ff;
 }
-.toast.rarity4 {
+.toast.t-rarity4 {
   border-color: #ffc145;
   color: #ffd27a;
 }

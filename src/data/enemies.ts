@@ -315,7 +315,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     poise: 260,
     aggroRange: 30,
     leash: 999,
-    xp: 400,
+    xp: 180,
     coins: [150, 150],
     drops: [{ item: 'spirit_ore', chance: 1, qty: [4, 6] }],
     equipChance: 0,
@@ -357,7 +357,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     poise: 320,
     aggroRange: 30,
     leash: 999,
-    xp: 800,
+    xp: 450,
     coins: [300, 300],
     drops: [
       { item: 'spirit_ore', chance: 1, qty: [6, 8] },

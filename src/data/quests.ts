@@ -80,7 +80,7 @@ export const QUESTS: Record<string, QuestDef> = Object.fromEntries(
           { type: 'boss', target: 'kuroganemaru', text: 'Defeat Kuroganemaru, the Iron-Gate Oni', area: 'bamboo', waypoint: 'oni_arena' },
           { type: 'talk', target: 'tsugumi', text: 'Bring the Ember Core to Elder Tsugumi', area: 'village', waypoint: 'tsugumi' },
         ],
-        rewards: { xp: 250, coins: 150, flags: ['marsh_open'] },
+        rewards: { xp: 150, coins: 150, flags: ['marsh_open'] },
         next: ['mq_marsh'],
       },
       {
@@ -97,7 +97,7 @@ export const QUESTS: Record<string, QuestDef> = Object.fromEntries(
           { type: 'boss', target: 'itomaru', text: 'Defeat Itomaru, the Silk Widow', area: 'catacombs', waypoint: 'widow_arena' },
           { type: 'talk', target: 'tsugumi', text: 'Return to Elder Tsugumi', area: 'village', waypoint: 'tsugumi' },
         ],
-        rewards: { xp: 500, coins: 300, flags: ['summit_open'] },
+        rewards: { xp: 350, coins: 300, flags: ['summit_open'] },
         next: ['mq_summit'],
       },
       {
@@ -141,7 +141,7 @@ export const QUESTS: Record<string, QuestDef> = Object.fromEntries(
           { type: 'talk', target: 'hotaru', text: 'Find Hotaru in the bamboo grove', area: 'bamboo', waypoint: 'hotaru' },
           { type: 'talk', target: 'mikoto', text: "Bring Hotaru's bell to Mikoto", area: 'village', waypoint: 'mikoto' },
         ],
-        rewards: { xp: 120, coins: 40, items: [{ id: 'charm_fox', rarity: 1 }] },
+        rewards: { xp: 80, coins: 40, items: [{ id: 'charm_fox', rarity: 1 }] },
       },
       {
         id: 'sq_wisps',
@@ -154,7 +154,7 @@ export const QUESTS: Record<string, QuestDef> = Object.fromEntries(
           { type: 'kill', target: 'ember_wisp', count: 5, text: 'Snuff out Ember Wisps' },
           { type: 'talk', target: 'ohana', text: 'Collect the bounty from Ohana', area: 'village', waypoint: 'ohana' },
         ],
-        rewards: { xp: 150, coins: 120, items: [{ id: 'spirit_tea', qty: 2 }, { id: 'ember_incense', qty: 2 }] },
+        rewards: { xp: 100, coins: 120, items: [{ id: 'spirit_tea', qty: 2 }, { id: 'ember_incense', qty: 2 }] },
       },
       {
         id: 'sq_parcel',

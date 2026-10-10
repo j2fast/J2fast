@@ -426,7 +426,7 @@ export class UI {
 
   toast(text: string, kind = 'info') {
     const el = document.createElement('div');
-    el.className = `toast ${kind}`;
+    el.className = `toast t-${kind}`;
     el.textContent = text;
     this.toastsEl.appendChild(el);
     while (this.toastsEl.children.length > 6) this.toastsEl.firstChild!.remove();
@@ -453,6 +453,10 @@ export class UI {
 
   soundCaption(text: string) {
     this.pushCaption(esc(text), 'sound', 2);
+  }
+
+  clearCaptions() {
+    this.captionsEl.innerHTML = '';
   }
 
   private pushCaption(html: string, cls: string, seconds: number) {

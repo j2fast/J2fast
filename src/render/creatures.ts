@@ -160,6 +160,23 @@ export function buildNpc(id: string): Model {
         m.opacity = 0.8;
       }
       break;
+    case 'farmer':
+      rig = buildHumanoid({ skin: 0xd9a77a, cloth: 0x6a7a4a, cloth2: 0xd9cfbf, accent: 0x8a6a3a, hair: 0x2a1a1a, headwear: 'kasa', bulk: 1.1 });
+      base = { ...POSES.idleNpc, torso: [0.18, 0, 0] };
+      break;
+    case 'child':
+      rig = buildHumanoid({ skin: 0xf2d0b0, cloth: 0xc8503a, cloth2: 0xf2e8d2, accent: 0x3a6aa8, hair: 0x1a1622, headwear: 'topknot', scale: 0.65 });
+      break;
+    case 'fisher':
+      rig = buildHumanoid({ skin: 0xc99a78, cloth: 0x3a5a7a, cloth2: 0xc8c0b0, accent: 0x6a6a5a, hair: 0xb8b8b8, headwear: 'hair', scale: 0.95 });
+      base = { ...POSES.idleNpc, torso: [0.2, 0, 0], armR: [-0.5, 0, -0.1], foreR: [-0.6, 0, 0] };
+      {
+        const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.025, 2.2, 5), toon(0x8a6a3a));
+        rod.position.y = -0.2;
+        rod.rotation.x = -0.6;
+        rig.handR.add(rod);
+      }
+      break;
     default:
       rig = buildHumanoid({ skin: 0xe8c4a0, cloth: 0x7a6a5a, cloth2: 0xd9cfbf, accent: 0x8a4a3a, hair: 0x2a1a1a, headwear: 'hair' });
   }

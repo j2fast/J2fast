@@ -51,7 +51,13 @@ bot plays fights with normal inputs (move, attack, dodge, heal). Without
 
 Headless Chromium uses software WebGL (SwiftShader), so rendering in tests is
 slow. The tests therefore step the simulation directly and render only when a
-screenshot is needed. Screenshots are written to `test-results/screens/`.
+screenshot is needed. Screenshots are written to `test-screens/`.
+
+## Dev tools
+
+* `node scripts/smoke.mjs <outdir> [js expressions...]` starts the dev server,
+  opens the game headlessly, evaluates the expressions in the page and saves
+  before/after screenshots. It's useful for quick visual checks.
 
 ## Project layout
 
