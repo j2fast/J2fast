@@ -90,3 +90,8 @@ Concise record of each milestone, what was verified and what was fixed.
     chains, and to fixing an inverted roll axis;
   * the binary mesh files decode correctly with a reference decoder.
 * Not verified: compiling and running inside Unreal Engine.
+* Web build re-verified after adding the export hooks (they are test-mode
+  only): typecheck clean, unit tests 63/63, end-to-end 25/25 (the long
+  playthrough test was not re-run). `release/Lanternbound.html` was rebuilt
+  and checked from `file://` (new game starts, HUD visible, no errors, test
+  hooks absent).
