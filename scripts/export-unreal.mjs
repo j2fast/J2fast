@@ -19,9 +19,14 @@ await page.goto('http://localhost:5196/?test=1');
 await page.waitForFunction(() => window.__lanternbound);
 const raw = await page.evaluate(() => window.__lanternbound.exportData());
 const areas = {};
+const meshes = {};
+const walks = {};
 for (const id of ['village', 'bamboo', 'marsh', 'catacombs', 'summit']) {
   areas[id] = await page.evaluate((id) => window.__lanternbound.exportArea(id, 2), id);
+  meshes[id] = await page.evaluate((id) => window.__lanternbound.exportAreaMesh(id), id);
+  walks[id] = await page.evaluate((id) => window.__lanternbound.exportWalk(id, 0.5), id);
 }
+const propsMesh = await page.evaluate(() => window.__lanternbound.exportProps());
 await browser.close();
 await server.close();
 
@@ -38,6 +43,11 @@ const cond = (c) => ({
   NotFlag: s(c?.notFlag),
   Has: s(c?.has),
 });
+const writeBin = (name, b64) => {
+  const buf = Buffer.from(b64, 'base64');
+  writeFileSync(`${OUT}/${name}`, buf);
+  console.log('wrote', name, `${(buf.length / 1024 / 1024).toFixed(2)} MB`);
+};
 const write = (name, obj) => {
   writeFileSync(`${OUT}/${name}.json`, JSON.stringify(obj));
   console.log('wrote', name);
@@ -211,7 +221,10 @@ write('skills', {
 });
 
 // ------------------------------------------------------------------ Areas
+writeBin('props.lbm', propsMesh);
 for (const [id, a] of Object.entries(areas)) {
+  writeBin(`area_${id}.lbm`, meshes[id].mesh);
+  const walk = walks[id];
   const env = a.env;
   write(`area_${id}`, {
     Id: a.id,
@@ -223,6 +236,11 @@ for (const [id, a] of Object.entries(areas)) {
     GridOrigin: a.grid.origin,
     Heights: a.grid.heights,
     Walkable: a.grid.walkable,
+    WalkStep: walk.step,
+    WalkN: walk.n,
+    WalkOrigin: walk.origin,
+    WalkRuns: walk.runs,
+    Lights: meshes[id].lights,
     Colors: a.grid.colors,
     Colliders: a.colliders.map((c) => ({
       Kind: c.kind,
@@ -256,7 +274,7 @@ for (const [id, a] of Object.entries(areas)) {
     Enemies: a.enemies.map((e) => ({ Id: e.id, Enemy: e.enemy, X: e.x, Z: e.z, Level: e.level, Respawn: n(e.respawn) })),
     HasBoss: !!a.boss,
     Boss: a.boss
-      ? { Enemy: a.boss.enemy, X: a.boss.x, Z: a.boss.z, Yaw: a.boss.yaw, ArenaX: a.boss.arena.x, ArenaZ: a.boss.arena.z, ArenaR: a.boss.arena.r, TriggerX: a.boss.trigger.x, TriggerZ: a.boss.trigger.z, TriggerR: a.boss.trigger.r, GateX: a.boss.gate.x, GateZ: a.boss.gate.z, GateWidth: a.boss.gate.width }
+      ? { Enemy: a.boss.enemy, X: a.boss.x, Z: a.boss.z, Yaw: a.boss.yaw, ArenaX: a.boss.arena.x, ArenaZ: a.boss.arena.z, ArenaR: a.boss.arena.r, TriggerX: a.boss.trigger.x, TriggerZ: a.boss.trigger.z, TriggerR: a.boss.trigger.r, GateX: a.boss.gate.x, GateZ: a.boss.gate.z, GateWidth: a.boss.gate.width, GateYaw: n(a.boss.gate.yaw) }
       : {},
     Env: {
       SkyTop: env.skyTop,
@@ -271,8 +289,15 @@ for (const [id, a] of Object.entries(areas)) {
       SunDirZ: env.sunDir[2],
       HemiSky: env.hemiSky,
       HemiGround: env.hemiGround,
+      HemiIntensity: n(walk.hemi, 1),
+      Stars: !!walk.stars,
+      Moon: !!walk.moon,
       LanternIntensity: env.lanternIntensity,
     },
+    HasAmbient: !!a.ambient,
+    Ambient: a.ambient
+      ? { Kind: a.ambient.kind, Color: a.ambient.color, Count: a.ambient.count, Size: a.ambient.size, Rate: a.ambient.rate, Radius: a.ambient.radius, YMin: a.ambient.yMin, YMax: a.ambient.yMax, Vy: a.ambient.vy, Wind: a.ambient.wind, Wander: a.ambient.wander, Life: a.ambient.life }
+      : {},
     Music: a.music,
     Tier: a.tier,
     HasWater: !!a.water,

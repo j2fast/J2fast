@@ -40,12 +40,19 @@ struct LANTERNBOUND_API FLBMeshBuilder
 	void Build(UProceduralMeshComponent* Mesh, int32 Section, bool bCollision, UMaterialInterface* Material) const;
 };
 
+/** Material families used by the generated meshes (indices match the scene mesh format). */
+enum class ELBMat : uint8 { Lit = 0, Unlit = 1, Translucent = 2, Additive = 3, Count };
+
 namespace LBMaterials
 {
 	/**
-	 * Material that displays vertex colours. Uses /Game/Lanternbound/M_VertexColor if the
-	 * project has one, otherwise builds one in memory (editor builds), otherwise falls
-	 * back to the engine's vertex-colour debug material.
+	 * Vertex-colour materials. Each one is loaded from /Game/Lanternbound/M_LB<Name> when the
+	 * project has it (run the editor console command `lb.SaveMaterials` once to create them;
+	 * needed for packaged builds). Otherwise editor builds create it in memory, and other
+	 * builds fall back to the engine's vertex-colour material.
 	 */
-	LANTERNBOUND_API UMaterialInterface* VertexColor(UObject* Outer);
+	LANTERNBOUND_API UMaterialInterface* Get(ELBMat Kind);
+	inline UMaterialInterface* VertexColor(UObject* /*Outer*/) { return Get(ELBMat::Lit); }
+	/** True when the given kind resolved to a real material of that kind (not the engine fallback). */
+	LANTERNBOUND_API bool IsNative(ELBMat Kind);
 }

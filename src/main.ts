@@ -15,6 +15,9 @@ import { DIALOGUES, NPC_DIALOGUE, NPC_NAMES, BOSS_LINES, ENDING_LINES } from './
 import { SKILLS } from './data/skills';
 import { SHOP_STOCK } from './data/shop';
 import { AREA_BUILDERS } from './world/areas';
+import { collectLights, collectParts, encodeParts, toBase64 } from './tools/meshExport';
+import { brazier, chest, barrier } from './world/props';
+import * as THREE from 'three';
 
 function showBootError(message: string) {
   const el = document.getElementById('boot-error');
@@ -153,6 +156,54 @@ function boot() {
           water: a.water ?? null,
           ambient: a.ambient,
         };
+      },
+      /** Binary scenery mesh (base64) and point lights of an area, for the Unreal port. */
+      exportAreaMesh(id: string) {
+        const a = AREA_BUILDERS[id as keyof typeof AREA_BUILDERS]();
+        const parts = collectParts(a.group);
+        const bytes = encodeParts(parts);
+        return { mesh: toBase64(bytes), lights: collectLights(a.group), parts: parts.map((p) => p.name), bytes: bytes.length };
+      },
+      /** Fine walkability grid, run-length encoded (alternating runs, starting with blocked cells). */
+      exportWalk(id: string, step = 0.5) {
+        const a = AREA_BUILDERS[id as keyof typeof AREA_BUILDERS]();
+        const half = a.size / 2;
+        const n = Math.floor(a.size / step) + 1;
+        const runs: number[] = [];
+        let cur = 0;
+        let run = 0;
+        for (let j = 0; j < n; j++) {
+          for (let i = 0; i < n; i++) {
+            const v = a.walkable ? (a.walkable(-half + i * step, -half + j * step) ? 1 : 0) : 1;
+            if (v === cur) run++;
+            else {
+              runs.push(run);
+              cur = v;
+              run = 1;
+            }
+          }
+        }
+        runs.push(run);
+        return { step, n, origin: -half, runs, hemi: a.env.hemiIntensity, stars: !!a.env.stars, moon: !!a.env.moon, gateYaw: a.boss?.gate.yaw ?? 0 };
+      },
+      /** Interactable prop variants (chests, braziers, seals) and the boss barrier. */
+      exportProps() {
+        const root = new THREE.Group();
+        const add = (name: string, obj: THREE.Object3D) => {
+          obj.traverse((o) => (o.name = ''));
+          obj.name = name;
+          root.add(obj);
+        };
+        add('chest_closed', chest(false));
+        add('chest_open', chest(true));
+        add('brazier_unlit', brazier(false));
+        add('brazier_lit', brazier(true));
+        const w = game.world as unknown as { buildInteractVisual(def: unknown, data: unknown): THREE.Object3D };
+        const sealDef = { id: 'seal_x', kind: 'seal', x: 0, z: 0 };
+        add('seal_unlit', w.buildInteractVisual(sealDef, { flags: {}, world: { openedChests: [], litBraziers: [] } }));
+        add('seal_lit', w.buildInteractVisual(sealDef, { flags: { seal_x: 1 }, world: { openedChests: [], litBraziers: [] } }));
+        add('barrier', barrier(1, 4));
+        return toBase64(encodeParts(collectParts(root)));
       },
       resetBot() {
         (hooks as unknown as { _bot?: TestBot })._bot = undefined;

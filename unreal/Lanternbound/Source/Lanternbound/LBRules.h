@@ -44,6 +44,8 @@ struct LANTERNBOUND_API FLBRules
 	static bool RemoveItem(FLBGameData& G, const FString& IdOrUid, int32 Qty = 1);
 	static bool IsEquipped(const FLBGameData& G, const FString& Uid);
 	static bool Equip(const ULBData& D, FLBGameData& G, const FString& Uid, const FString& Slot);
+	static bool Unequip(FLBGameData& G, const FString& Slot);
+	static bool Buy(const ULBData& D, FLBGameData& G, const FString& Id, int32 Price, int32 Qty = 1);
 	static const FLBItemInstance* ActiveWeapon(const FLBGameData& G);
 	static int32 SellValue(const ULBData& D, const FLBItemInstance& Inst);
 	static int32 Sell(const ULBData& D, FLBGameData& G, const FString& Uid);
@@ -54,12 +56,17 @@ struct LANTERNBOUND_API FLBRules
 	static int32 RollRarity(FRandomStream& Rng, float Luck = 0.f);
 	static TArray<FLBStat> RollAffixes(const FLBItemDef& Def, int32 Rarity, FRandomStream& Rng);
 	static FString RollEquipmentId(const ULBData& D, FRandomStream& Rng, int32 Tier);
+	/** Rarity < 0 rolls one (fixed-rarity items always use theirs). */
+	static FLBItemInstance GenerateEquipment(const ULBData& D, const FString& Id, FRandomStream& Rng, int32 Rarity = -1);
+	static FLBItemInstance RollEquipmentDrop(const ULBData& D, FRandomStream& Rng, int32 AreaTier);
+	static void RollEnemyDrops(const ULBData& D, const FLBEnemyDef& Def, FRandomStream& Rng, int32 AreaTier, float CoinMult, int32& OutCoins, TArray<FLBItemRef>& OutItems, TArray<FLBItemInstance>& OutEquipment);
 
 	// --------------------------------------------------------------- Progression
 	static int32 XpToNext(int32 Level);
 	static int32 AddXp(FLBGameData& G, int32 Amount);
 	/** Returns "" on success, otherwise a reason. */
 	static FString TrainSkill(const ULBData& D, FLBGameData& G, const FString& SkillId);
+	static int32 ResetSkills(FLBGameData& G);
 
 	// --------------------------------------------------------------- Quests
 	static FLBQuestState* QuestState(FLBGameData& G, const FString& Id);
@@ -75,6 +82,13 @@ struct LANTERNBOUND_API FLBRules
 	// --------------------------------------------------------------- Dialogue
 	static bool EvalCond(const ULBData& D, const FLBGameData& G, const FLBCond& C);
 	static const FLBNpcDialogueEntry* SelectDialogue(const ULBData& D, const FLBGameData& G, const FString& NpcId);
+	/** 0 = none, 1 = new quest available, 2 = something to turn in / report. */
+	static int32 NpcQuestMarker(const ULBData& D, const FLBGameData& G, const FString& NpcId);
+	/** Next area on the shortest route between two areas ("" if none). */
+	static FString NextAreaToward(const FString& From, const FString& To);
+	static FString AreaName(const FString& Id);
+	static int32 GetFlag(const FLBGameData& G, const FString& Flag) { const int32* V = G.Flags.Find(Flag); return V ? *V : 0; }
+	static void SetFlag(FLBGameData& G, const FString& Flag, int32 Value = 1) { G.Flags.Add(Flag, Value); }
 
 	// --------------------------------------------------------------- New game
 	static FLBGameData NewGame(const ULBData& D, FRandomStream& Rng, TArray<FLBQuestUpdate>& Out);
@@ -84,4 +98,22 @@ struct LANTERNBOUND_API FLBRules
 private:
 	static void Advance(const ULBData& D, FLBGameData& G, FRandomStream& Rng, const FString& Id, TArray<FLBQuestUpdate>& Out);
 	static void Complete(const ULBData& D, FLBGameData& G, FRandomStream& Rng, const FString& Id, TArray<FLBQuestUpdate>& Out);
+};
+
+/** Walks a dialogue tree; the game executes the queued actions. */
+struct LANTERNBOUND_API FLBDialogueRunner
+{
+	const FLBDialogue* Dialogue = nullptr;
+	FString NodeId;
+	TArray<FString> PendingActions;
+
+	bool Start(const ULBData& D, const FString& DialogueId);
+	const FLBDialogueNode* Node() const { return Dialogue && !NodeId.IsEmpty() ? Dialogue->FindNode(NodeId) : nullptr; }
+	TArray<const FLBDialogueChoice*> VisibleChoices(const ULBData& D, const FLBGameData& G) const;
+	void Advance(const ULBData& D, const FLBGameData& G);
+	void Choose(const ULBData& D, const FLBGameData& G, int32 Index);
+	TArray<FString> TakeActions();
+
+private:
+	void EnterNode();
 };

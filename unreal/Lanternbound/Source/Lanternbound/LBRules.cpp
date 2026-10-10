@@ -745,3 +745,199 @@ TArray<FString> FLBRules::Sanitize(const ULBData& D, FLBGameData& G)
 	for (FLBQuestState& Q : G.ActiveQuests) Q.Stage = FMath::Clamp(Q.Stage, 0, D.Quests[Q.Id].Objectives.Num() - 1);
 	return Warnings;
 }
+
+// =================================================================== Additional inventory rules
+
+bool FLBRules::Unequip(FLBGameData& G, const FString& Slot)
+{
+	// Always keep at least one weapon equipped.
+	if (Slot == TEXT("weapon1") && G.Weapon2.IsEmpty()) return false;
+	if (Slot == TEXT("weapon2") && G.Weapon1.IsEmpty()) return false;
+	if (Slot == TEXT("weapon1"))
+	{
+		G.Weapon1 = G.Weapon2;
+		G.Weapon2.Empty();
+	}
+	else if (Slot == TEXT("weapon2")) G.Weapon2.Empty();
+	else if (Slot == TEXT("armor")) G.Armor.Empty();
+	else if (Slot == TEXT("charm")) G.Charm.Empty();
+	else return false;
+	G.ActiveWeapon = 0;
+	return true;
+}
+
+bool FLBRules::Buy(const ULBData& D, FLBGameData& G, const FString& Id, int32 Price, int32 Qty)
+{
+	const FLBItemDef* Def = D.Item(Id);
+	const int32 Total = Price * Qty;
+	if (!Def || G.Coins < Total) return false;
+	if (Def->Stackable && CountItem(G, Id) + Qty > (Def->MaxStack > 0 ? Def->MaxStack : 99)) return false;
+	G.Coins -= Total;
+	AddItem(D, G, Id, Qty);
+	return true;
+}
+
+int32 FLBRules::ResetSkills(FLBGameData& G)
+{
+	int32 Refunded = 0;
+	for (const TPair<FString, int32>& P : G.Skills) Refunded += P.Value;
+	G.Skills.Reset();
+	G.SkillPoints += Refunded;
+	return Refunded;
+}
+
+FLBItemInstance FLBRules::GenerateEquipment(const ULBData& D, const FString& Id, FRandomStream& Rng, int32 Rarity)
+{
+	FLBItemInstance I;
+	I.Id = Id;
+	const FLBItemDef* Def = D.Item(Id);
+	if (!Def) return I;
+	I.Rarity = Def->FixedRarity >= 0 ? Def->FixedRarity : (Rarity >= 0 ? Rarity : RollRarity(Rng));
+	I.Affixes = RollAffixes(*Def, I.Rarity, Rng);
+	return I;
+}
+
+FLBItemInstance FLBRules::RollEquipmentDrop(const ULBData& D, FRandomStream& Rng, int32 AreaTier)
+{
+	const FString Id = RollEquipmentId(D, Rng, AreaTier);
+	return GenerateEquipment(D, Id, Rng, RollRarity(Rng, (AreaTier - 1) * 0.15f));
+}
+
+void FLBRules::RollEnemyDrops(const ULBData& D, const FLBEnemyDef& Def, FRandomStream& Rng, int32 AreaTier, float CoinMult, int32& OutCoins, TArray<FLBItemRef>& OutItems, TArray<FLBItemInstance>& OutEquipment)
+{
+	OutCoins = FMath::RoundToInt(Rng.RandRange(Def.CoinsMin, FMath::Max(Def.CoinsMin, Def.CoinsMax)) * CoinMult);
+	for (const FLBDrop& Drop : Def.Drops)
+	{
+		if (Rng.FRand() < Drop.Chance)
+		{
+			FLBItemRef R;
+			R.Id = Drop.Item;
+			R.Qty = Rng.RandRange(Drop.QtyMin, FMath::Max(Drop.QtyMin, Drop.QtyMax));
+			OutItems.Add(R);
+		}
+	}
+	if (Def.EquipChance > 0.f && Rng.FRand() < Def.EquipChance)
+	{
+		FLBItemInstance E = RollEquipmentDrop(D, Rng, AreaTier);
+		if (!E.Id.IsEmpty()) OutEquipment.Add(E);
+	}
+}
+
+// =================================================================== Dialogue helpers
+
+int32 FLBRules::NpcQuestMarker(const ULBData& D, const FLBGameData& G, const FString& NpcId)
+{
+	const FLBNpcDialogueEntry* Entry = SelectDialogue(D, G, NpcId);
+	if (!Entry) return 0;
+	if (!Entry->Quest.IsEmpty() && !Entry->NoTalk) return 2;
+	if (const FLBDialogue* Dlg = D.Dialogues.Find(Entry->Dialogue))
+	{
+		for (const FLBDialogueNode& N : Dlg->Nodes)
+		{
+			for (const FLBDialogueChoice& C : N.Choices)
+			{
+				if (!C.Cond.Available.IsEmpty() && EvalCond(D, G, C.Cond)) return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+static TArray<FString> AreaLinks(const FString& Id)
+{
+	if (Id == TEXT("village")) return {TEXT("bamboo"), TEXT("marsh"), TEXT("summit")};
+	if (Id == TEXT("marsh")) return {TEXT("village"), TEXT("catacombs")};
+	if (Id == TEXT("catacombs")) return {TEXT("marsh")};
+	if (Id == TEXT("bamboo") || Id == TEXT("summit")) return {TEXT("village")};
+	return {};
+}
+
+FString FLBRules::NextAreaToward(const FString& From, const FString& To)
+{
+	if (From == To) return FString();
+	TMap<FString, FString> Prev;
+	TArray<FString> Queue = {From};
+	TSet<FString> Seen = {From};
+	for (int32 Head = 0; Head < Queue.Num(); Head++)
+	{
+		const FString Cur = Queue[Head];
+		for (const FString& N : AreaLinks(Cur))
+		{
+			if (Seen.Contains(N)) continue;
+			Seen.Add(N);
+			Prev.Add(N, Cur);
+			if (N == To)
+			{
+				FString Step = N;
+				while (Prev[Step] != From) Step = Prev[Step];
+				return Step;
+			}
+			Queue.Add(N);
+		}
+	}
+	return FString();
+}
+
+FString FLBRules::AreaName(const FString& Id)
+{
+	if (Id == TEXT("village")) return TEXT("Akari Village");
+	if (Id == TEXT("bamboo")) return TEXT("Sasagiri Bamboo Grove");
+	if (Id == TEXT("marsh")) return TEXT("Mistfen Marsh");
+	if (Id == TEXT("catacombs")) return TEXT("Hollow Catacombs");
+	if (Id == TEXT("summit")) return TEXT("Hinoyama Summit");
+	return Id;
+}
+
+// =================================================================== Dialogue runner
+
+bool FLBDialogueRunner::Start(const ULBData& D, const FString& DialogueId)
+{
+	Dialogue = D.Dialogues.Find(DialogueId);
+	PendingActions.Reset();
+	if (!Dialogue) return false;
+	NodeId = Dialogue->Start;
+	EnterNode();
+	return true;
+}
+
+TArray<const FLBDialogueChoice*> FLBDialogueRunner::VisibleChoices(const ULBData& D, const FLBGameData& G) const
+{
+	TArray<const FLBDialogueChoice*> Out;
+	if (const FLBDialogueNode* N = Node())
+	{
+		for (const FLBDialogueChoice& C : N->Choices)
+		{
+			if (FLBRules::EvalCond(D, G, C.Cond)) Out.Add(&C);
+		}
+	}
+	return Out;
+}
+
+void FLBDialogueRunner::EnterNode()
+{
+	if (const FLBDialogueNode* N = Node()) PendingActions.Append(N->Actions);
+}
+
+void FLBDialogueRunner::Advance(const ULBData& D, const FLBGameData& G)
+{
+	const FLBDialogueNode* N = Node();
+	if (!N || VisibleChoices(D, G).Num() > 0) return;
+	NodeId = N->Next;
+	EnterNode();
+}
+
+void FLBDialogueRunner::Choose(const ULBData& D, const FLBGameData& G, int32 Index)
+{
+	const TArray<const FLBDialogueChoice*> Choices = VisibleChoices(D, G);
+	if (!Choices.IsValidIndex(Index)) return;
+	PendingActions.Append(Choices[Index]->Actions);
+	NodeId = Choices[Index]->Next;
+	EnterNode();
+}
+
+TArray<FString> FLBDialogueRunner::TakeActions()
+{
+	TArray<FString> Out = MoveTemp(PendingActions);
+	PendingActions.Reset();
+	return Out;
+}

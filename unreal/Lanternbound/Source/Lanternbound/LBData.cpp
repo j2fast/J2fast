@@ -6,7 +6,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
-FString ULBData::DataDir() const
+FString ULBData::DataDir()
 {
 	return FPaths::Combine(FPaths::ProjectContentDir(), TEXT("Data"));
 }
@@ -106,6 +106,7 @@ const FLBAreaData* ULBData::GetArea(const FString& AreaId)
 		LoadError += FString::Printf(TEXT("area_%s.json could not be parsed\n"), *AreaId);
 		return nullptr;
 	}
+	Area->DecodeWalk();
 	AreaCache.Add(AreaId, Area);
 	return Area.Get();
 }

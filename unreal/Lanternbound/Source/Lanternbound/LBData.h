@@ -39,10 +39,11 @@ public:
 	FString NpcName(const FString& Id) const;
 
 	static ULBData* Get(const UObject* WorldContext);
+	/** Content/Data directory (staged as loose files, see DefaultGame.ini). */
+	static FString DataDir();
 
 private:
 	// Shared pointers keep each area's address stable while more areas are cached.
 	TMap<FString, TSharedPtr<FLBAreaData>> AreaCache;
-	FString DataDir() const;
 	bool LoadFile(const FString& Name, FString& OutText);
 };

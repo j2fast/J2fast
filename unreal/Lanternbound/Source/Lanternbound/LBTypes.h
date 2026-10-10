@@ -506,6 +506,21 @@ struct FLBBossPlace
 	UPROPERTY() float GateX = 0.f;
 	UPROPERTY() float GateZ = 0.f;
 	UPROPERTY() float GateWidth = 6.f;
+	UPROPERTY() float GateYaw = 0.f;
+};
+
+USTRUCT()
+struct FLBLightDef
+{
+	GENERATED_BODY()
+	UPROPERTY() FString Name;
+	/** Unreal-space centimetres (already converted by the exporter). */
+	UPROPERTY() float X = 0.f;
+	UPROPERTY() float Y = 0.f;
+	UPROPERTY() float Z = 0.f;
+	UPROPERTY() int32 Color = 0xffffff;
+	UPROPERTY() float Intensity = 1.f;
+	UPROPERTY() float Distance = 0.f;
 };
 
 USTRUCT()
@@ -525,6 +540,27 @@ struct FLBEnvDef
 	UPROPERTY() int32 HemiSky = 0xffffff;
 	UPROPERTY() int32 HemiGround = 0x444444;
 	UPROPERTY() float LanternIntensity = 1.5f;
+	UPROPERTY() float HemiIntensity = 1.f;
+	UPROPERTY() bool Stars = false;
+	UPROPERTY() bool Moon = false;
+};
+
+USTRUCT()
+struct FLBAmbientDef
+{
+	GENERATED_BODY()
+	UPROPERTY() FString Kind;
+	UPROPERTY() int32 Color = 0xffffff;
+	UPROPERTY() int32 Count = 100;
+	UPROPERTY() float Size = 0.2f;
+	UPROPERTY() float Rate = 10.f;
+	UPROPERTY() float Radius = 20.f;
+	UPROPERTY() float YMin = 0.f;
+	UPROPERTY() float YMax = 5.f;
+	UPROPERTY() float Vy = 0.f;
+	UPROPERTY() float Wind = 0.f;
+	UPROPERTY() float Wander = 0.f;
+	UPROPERTY() float Life = 8.f;
 };
 
 USTRUCT()
@@ -541,6 +577,12 @@ struct FLBAreaData
 	UPROPERTY() TArray<float> Heights;
 	UPROPERTY() TArray<int32> Walkable;
 	UPROPERTY() TArray<int32> Colors;
+	/** Fine walkability grid, run-length encoded (alternating runs, first run blocked). */
+	UPROPERTY() float WalkStep = 0.5f;
+	UPROPERTY() int32 WalkN = 0;
+	UPROPERTY() float WalkOrigin = 0.f;
+	UPROPERTY() TArray<int32> WalkRuns;
+	UPROPERTY() TArray<FLBLightDef> Lights;
 	UPROPERTY() TArray<FLBColliderDef> Colliders;
 	UPROPERTY() TArray<FLBSpawnDef> Spawns;
 	UPROPERTY() TArray<FLBMarkerDef> Markers;
@@ -551,6 +593,8 @@ struct FLBAreaData
 	UPROPERTY() bool HasBoss = false;
 	UPROPERTY() FLBBossPlace Boss;
 	UPROPERTY() FLBEnvDef Env;
+	UPROPERTY() bool HasAmbient = false;
+	UPROPERTY() FLBAmbientDef Ambient;
 	UPROPERTY() FString Music;
 	UPROPERTY() int32 Tier = 1;
 	UPROPERTY() bool HasWater = false;
@@ -574,8 +618,32 @@ struct FLBAreaData
 		return FMath::Lerp(FMath::Lerp(H00, H10, Tx), FMath::Lerp(H01, H11, Tx), Tz);
 	}
 
+	/** Decoded WalkRuns (filled by ULBData after loading). */
+	TArray<uint8> WalkCells;
+
+	void DecodeWalk()
+	{
+		WalkCells.Reset();
+		if (WalkN <= 1 || WalkRuns.Num() == 0) return;
+		WalkCells.Reserve(WalkN * WalkN);
+		uint8 V = 0;
+		for (const int32 Run : WalkRuns)
+		{
+			for (int32 I = 0; I < Run && WalkCells.Num() < WalkN * WalkN; I++) WalkCells.Add(V);
+			V = V ? 0 : 1;
+		}
+		if (WalkCells.Num() != WalkN * WalkN) WalkCells.Reset();
+	}
+
 	bool IsWalkable(float X, float Z) const
 	{
+		if (WalkCells.Num() > 0)
+		{
+			const int32 I = FMath::RoundToInt((X - WalkOrigin) / WalkStep);
+			const int32 J = FMath::RoundToInt((Z - WalkOrigin) / WalkStep);
+			if (I < 0 || J < 0 || I >= WalkN || J >= WalkN) return false;
+			return WalkCells[J * WalkN + I] != 0;
+		}
 		if (GridN <= 1 || Walkable.Num() < GridN * GridN) return true;
 		const int32 I = FMath::RoundToInt((X - GridOrigin) / GridStep);
 		const int32 J = FMath::RoundToInt((Z - GridOrigin) / GridStep);
@@ -654,8 +722,15 @@ struct FLBGameData
 	UPROPERTY() TArray<FString> LitBraziers;
 	UPROPERTY() TArray<FString> BossesDefeated;
 	UPROPERTY() TArray<FString> VisitedAreas;
+	/** Saved position inside the area (absent when saved during a boss fight or after travel). */
+	UPROPERTY() bool bHasPos = false;
+	UPROPERTY() float PosX = 0.f;
+	UPROPERTY() float PosZ = 0.f;
 	UPROPERTY() int32 Kills = 0;
 	UPROPERTY() int32 Deaths = 0;
+	UPROPERTY() int32 DamageDealt = 0;
+	UPROPERTY() int32 ItemsFound = 0;
+	UPROPERTY() int64 SavedAt = 0;
 	UPROPERTY() float PlayTime = 0.f;
 	UPROPERTY() int32 NextUid = 1;
 	UPROPERTY() bool bEnding = false;

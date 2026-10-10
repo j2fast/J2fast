@@ -5,9 +5,13 @@
 #include "Engine/Engine.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Package.h"
+#include "HAL/IConsoleManager.h"
 #if WITH_EDITOR
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionMultiply.h"
+#include "Misc/PackageName.h"
+#include "UObject/SavePackage.h"
 #endif
 
 void FLBMeshBuilder::Reset()
@@ -149,40 +153,144 @@ void FLBMeshBuilder::Build(UProceduralMeshComponent* Mesh, int32 Section, bool b
 
 namespace LBMaterials
 {
-	static TWeakObjectPtr<UMaterialInterface> Cached;
+	static TWeakObjectPtr<UMaterialInterface> Cached[int32(ELBMat::Count)];
+	static bool bNative[int32(ELBMat::Count)] = {};
 
-	UMaterialInterface* VertexColor(UObject* Outer)
+	static const TCHAR* MatName(ELBMat Kind)
 	{
-		if (Cached.IsValid()) return Cached.Get();
-
-		// 1) A project material, if the user created one (recommended for packaged builds).
-		if (UMaterialInterface* M = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Lanternbound/M_VertexColor.M_VertexColor"), nullptr, LOAD_NoWarn | LOAD_Quiet))
+		switch (Kind)
 		{
-			Cached = M;
+		case ELBMat::Unlit: return TEXT("M_LBUnlit");
+		case ELBMat::Translucent: return TEXT("M_LBTranslucent");
+		case ELBMat::Additive: return TEXT("M_LBAdditive");
+		default: return TEXT("M_LBLit");
+		}
+	}
+
+#if WITH_EDITOR
+	/** Builds the material graph for one kind inside Outer (transient or a package). */
+	UMaterial* BuildMaterial(UObject* Outer, ELBMat Kind, FName Name, EObjectFlags Flags)
+	{
+		UMaterial* M = NewObject<UMaterial>(Outer, Name, Flags);
+		UMaterialEditorOnlyData* Ed = M->GetEditorOnlyData();
+		UMaterialExpressionVertexColor* VC = NewObject<UMaterialExpressionVertexColor>(M);
+		M->GetExpressionCollection().AddExpression(VC);
+		if (Kind == ELBMat::Lit)
+		{
+			UMaterialExpressionConstant* Rough = NewObject<UMaterialExpressionConstant>(M);
+			Rough->R = 0.9f;
+			M->GetExpressionCollection().AddExpression(Rough);
+			UMaterialExpressionConstant* Spec = NewObject<UMaterialExpressionConstant>(M);
+			Spec->R = 0.25f;
+			M->GetExpressionCollection().AddExpression(Spec);
+			Ed->BaseColor.Connect(0, VC);
+			Ed->Roughness.Connect(0, Rough);
+			Ed->Specular.Connect(0, Spec);
+		}
+		else
+		{
+			// Unlit kinds: emissive = vertex colour x 2 (the exporter stores glow at half range).
+			UMaterialExpressionMultiply* Mul = NewObject<UMaterialExpressionMultiply>(M);
+			Mul->A.Connect(0, VC);
+			Mul->ConstB = 2.f;
+			M->GetExpressionCollection().AddExpression(Mul);
+			M->SetShadingModel(MSM_Unlit);
+			if (Kind == ELBMat::Translucent)
+			{
+				M->BlendMode = BLEND_Translucent;
+				Ed->Opacity.Connect(4, VC);
+				Ed->EmissiveColor.Connect(0, Mul);
+			}
+			else if (Kind == ELBMat::Additive)
+			{
+				M->BlendMode = BLEND_Additive;
+				UMaterialExpressionMultiply* Fade = NewObject<UMaterialExpressionMultiply>(M);
+				Fade->A.Connect(0, Mul);
+				Fade->B.Connect(4, VC);
+				M->GetExpressionCollection().AddExpression(Fade);
+				Ed->EmissiveColor.Connect(0, Fade);
+			}
+			else
+			{
+				Ed->EmissiveColor.Connect(0, Mul);
+			}
+		}
+		M->PostEditChange();
+		return M;
+	}
+#endif
+
+	UMaterialInterface* Get(ELBMat Kind)
+	{
+		const int32 Index = FMath::Clamp(int32(Kind), 0, int32(ELBMat::Count) - 1);
+		if (Cached[Index].IsValid()) return Cached[Index].Get();
+
+		// 1) A project material (created by lb.SaveMaterials, needed for packaged builds).
+		const FString Path = FString::Printf(TEXT("/Game/Lanternbound/%s.%s"), MatName(Kind), MatName(Kind));
+		if (UMaterialInterface* M = LoadObject<UMaterialInterface>(nullptr, *Path, nullptr, LOAD_NoWarn | LOAD_Quiet))
+		{
+			Cached[Index] = M;
+			bNative[Index] = true;
 			return M;
+		}
+		// Backwards compatibility with a hand-made lit material.
+		if (Kind == ELBMat::Lit)
+		{
+			if (UMaterialInterface* M = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Lanternbound/M_VertexColor.M_VertexColor"), nullptr, LOAD_NoWarn | LOAD_Quiet))
+			{
+				Cached[Index] = M;
+				bNative[Index] = true;
+				return M;
+			}
 		}
 
 #if WITH_EDITOR
-		// 2) In the editor, build a simple lit vertex-colour material in memory.
+		// 2) In the editor, build it in memory.
 		{
-			UMaterial* M = NewObject<UMaterial>(GetTransientPackage(), TEXT("LB_RuntimeVertexColor"), RF_Transient);
-			UMaterialExpressionVertexColor* VC = NewObject<UMaterialExpressionVertexColor>(M);
-			UMaterialExpressionConstant* Rough = NewObject<UMaterialExpressionConstant>(M);
-			Rough->R = 0.85f;
-			M->GetExpressionCollection().AddExpression(VC);
-			M->GetExpressionCollection().AddExpression(Rough);
-			M->GetEditorOnlyData()->BaseColor.Expression = VC;
-			M->GetEditorOnlyData()->Roughness.Expression = Rough;
-			M->PostEditChange();
+			UMaterial* M = BuildMaterial(GetTransientPackage(), Kind, MakeUniqueObjectName(GetTransientPackage(), UMaterial::StaticClass(), FName(MatName(Kind))), RF_Transient);
 			M->AddToRoot();
-			Cached = M;
+			Cached[Index] = M;
+			bNative[Index] = true;
 			return M;
 		}
 #else
-		// 3) Engine fallback (unlit-looking but always available).
+		// 3) Engine fallback (always available, but no translucency or glow).
 		UMaterialInterface* EngineMat = GEngine ? static_cast<UMaterialInterface*>(GEngine->VertexColorMaterial) : nullptr;
-		Cached = EngineMat;
+		Cached[Index] = EngineMat;
+		bNative[Index] = false;
 		return EngineMat;
 #endif
 	}
+
+	bool IsNative(ELBMat Kind)
+	{
+		Get(Kind);
+		return bNative[FMath::Clamp(int32(Kind), 0, int32(ELBMat::Count) - 1)];
+	}
 }
+
+#if WITH_EDITOR
+// Editor console command: saves the four vertex-colour materials as assets under
+// /Game/Lanternbound so they are cooked into packaged builds.
+static FAutoConsoleCommand GLBSaveMaterials(
+	TEXT("lb.SaveMaterials"),
+	TEXT("Create /Game/Lanternbound/M_LB* vertex-colour material assets (run once in the editor before packaging)."),
+	FConsoleCommandDelegate::CreateLambda([]()
+	{
+		for (int32 I = 0; I < int32(ELBMat::Count); I++)
+		{
+			const ELBMat Kind = ELBMat(I);
+			const FString Name = LBMaterials::MatName(Kind);
+			const FString PackageName = FString(TEXT("/Game/Lanternbound/")) + Name;
+			UPackage* Package = CreatePackage(*PackageName);
+			Package->FullyLoad();
+			UMaterial* M = LBMaterials::BuildMaterial(Package, Kind, FName(*Name), RF_Public | RF_Standalone);
+			Package->MarkPackageDirty();
+			const FString File = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+			FSavePackageArgs Args;
+			Args.TopLevelFlags = RF_Public | RF_Standalone;
+			const bool bOk = UPackage::SavePackage(Package, M, *File, Args);
+			UE_LOG(LogTemp, Display, TEXT("lb.SaveMaterials: %s -> %s"), *PackageName, bOk ? TEXT("saved") : TEXT("FAILED"));
+		}
+	}));
+#endif
