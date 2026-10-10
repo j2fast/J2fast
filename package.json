@@ -1,0 +1,28 @@
+{
+  "name": "lanternbound",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Lanternbound: Embers of Hinoyama - an original third-person action RPG",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:all": "npm run typecheck && npm run test && npm run build && npm run test:e2e"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/three": "0.170.0",
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "vite-plugin-singlefile": "2.2.0",
+    "vitest": "3.2.7"
+  }
+}
